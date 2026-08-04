@@ -18,73 +18,9 @@
 
     <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
 
-<p>
-أهلاً وسهلاً بكم في موقعي الشخصي
-</p>
-
-<input type="text" id="name" placeholder="اكتب اسمك">
-
-<input type="tel" id="phone" placeholder="اكتب رقم الهاتف">
-
-<button onclick="saveUser()">
-حفظ البيانات
-</button>
-
-<p id="userInfo"></p>
-
-<button onclick="birthDay()">
-اعرف يوم ولادتك
-</button>
-
-<p id="result"></p>
-
+    <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
 
   </div>
-
-  <script>
-    function parseISODate(input) {
-      // توقع الشكل YYYY-MM-DD
-      const parts = input.split('-');
-      if (parts.length !== 3) return null;
-      const [y, m, d] = parts.map(p => Number(p));
-      if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
-      // تحقق مبسّط على القيم
-      if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-      return new Date(y, m - 1, d);
-    }
-
-    function birthDay() {
-      let date = prompt("أدخل تاريخ ميلادك بالشكل التالي:\n2000-05-15");
-      if (date == null || date.trim() === "") return;
-
-      // نستخدم تحليلاً آمناً لتجنب اختلافات المتصفحات
-      let d = parseISODate(date.trim());
-
-      // فشل التحليل -> حاول إنشاء Date كخطة بديلة
-      if (!d) {
-        d = new Date(date);
-      }
-
-      // تحقق موثوق من صلاحية التاريخ
-      if (!d || isNaN(d.getTime())) {
-        alert("الرجاء إدخال التاريخ بالشكل الصحيح (مثال: 2000-05-15)");
-        return;
-      }
-
-      const days = [
-        "الأحد",
-        "الاثنين",
-        "الثلاثاء",
-        "الأربعاء",
-        "الخميس",
-        "الجمعة",
-        "السبت"
-      ];
-
-      document.getElementById("result").innerHTML =
-        "🎉 لقد ولدت يوم <br><br><span>" + days[d.getDay()] + "</span>";
-    }
-  </script>
 
 </body>
 </html>
