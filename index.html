@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,61 +17,106 @@ font-family:Arial,sans-serif;
 }
 
 body{
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-text-align:center;
 
-/* علم العراق */
+height:100vh;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
 background:linear-gradient(
 to bottom,
-#ce1126 33%,
+#CE1126 33%,
 white 33%,
 white 66%,
-black 66%
+#000000 66%
 );
 
 }
 
 .container{
-background:rgba(255,255,255,0.9);
-padding:50px;
-border-radius:20px;
-box-shadow:0 0 20px rgba(0,0,0,.3);
+
 width:90%;
 max-width:700px;
+
+background:rgba(255,255,255,.92);
+
+padding:40px;
+
+border-radius:20px;
+
+box-shadow:0 0 25px rgba(0,0,0,.4);
+
+text-align:center;
+
 }
 
 h1{
+
 font-size:55px;
+
 color:#0d6efd;
-margin-bottom:20px;
+
+margin-bottom:10px;
+
 }
 
 h2{
+
 font-size:28px;
-color:#222;
-margin-bottom:20px;
+
+margin-bottom:25px;
+
 }
 
 p{
+
 font-size:22px;
-margin-bottom:30px;
+
+margin-bottom:25px;
+
 }
 
 button{
+
 background:#0d6efd;
+
 color:white;
-border:none;
+
 padding:15px 35px;
+
 font-size:22px;
+
+border:none;
+
 border-radius:10px;
+
 cursor:pointer;
+
+transition:.3s;
+
 }
 
 button:hover{
+
 background:#084298;
+
+transform:scale(1.05);
+
+}
+
+#result{
+
+margin-top:30px;
+
+font-size:28px;
+
+font-weight:bold;
+
+color:#006400;
+
 }
 
 </style>
@@ -86,12 +132,49 @@ background:#084298;
 <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
 
 <p>
-مرحباً بكم في موقعي الشخصي.
+أهلاً وسهلاً بكم في موقعي الشخصي
 </p>
 
-<button>تواصل معي</button>
+<button onclick="birthDay()">
+اعرف يوم ولادتك
+</button>
+
+<p id="result"></p>
 
 </div>
 
+<script>
+
+function birthDay(){
+
+let date=prompt("أدخل تاريخ ميلادك بالشكل التالي:\n2000-05-15");
+
+if(date==null || date=="") return;
+
+let d=new Date(date);
+
+if(isNaN(d)){
+alert("الرجاء إدخال التاريخ بالشكل الصحيح");
+return;
+}
+
+let days=[
+"الأحد",
+"الاثنين",
+"الثلاثاء",
+"الأربعاء",
+"الخميس",
+"الجمعة",
+"السبت"
+];
+
+document.getElementById("result").innerHTML=
+"🎉 لقد ولدت يوم <br><br><span style='color:#0d6efd;'>"+days[d.getDay()]+"</span>";
+
+}
+
+</script>
+
 </body>
+
 </html>
