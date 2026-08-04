@@ -1,46 +1,70 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>مهندس يوسف غسان </title>
+<title>مهندس يوسف غسان</title>
 
 <style>
 
-body{
+*{
 margin:0;
-font-family:Arial;
-background:#f4f4f4;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
 }
 
-nav{
-background:#0d6efd;
-color:white;
-padding:20px;
-font-size:24px;
-}
-
-section{
+body{
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
 text-align:center;
-padding:80px;
+
+/* علم العراق */
+background:linear-gradient(
+to bottom,
+#ce1126 33%,
+white 33%,
+white 66%,
+black 66%
+);
+
+}
+
+.container{
+background:rgba(255,255,255,0.9);
+padding:50px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,.3);
+width:90%;
+max-width:700px;
 }
 
 h1{
-font-size:50px;
+font-size:55px;
+color:#0d6efd;
+margin-bottom:20px;
+}
+
+h2{
+font-size:28px;
+color:#222;
+margin-bottom:20px;
 }
 
 p{
 font-size:22px;
+margin-bottom:30px;
 }
 
 button{
-padding:15px 35px;
-font-size:20px;
 background:#0d6efd;
 color:white;
 border:none;
+padding:15px 35px;
+font-size:22px;
 border-radius:10px;
 cursor:pointer;
 }
@@ -55,23 +79,19 @@ background:#084298;
 
 <body>
 
-<nav>
+<div class="container">
 
-مهندس يوسف
-</nav>
+<h1>مهندس يوسف غسان</h1>
 
-<section>
-
-<h1>أهلاً بك 👋</h1>
+<h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
 
 <p>
-هذا أول موقع أقوم ببرمجته باستخدام HTML و CSS.
+مرحباً بكم في موقعي الشخصي.
 </p>
 
-<button>ابدأ الآن</button>
+<button>تواصل معي</button>
 
-</section>
+</div>
 
 </body>
-
 </html>
