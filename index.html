@@ -2,428 +2,176 @@
 <html lang="ar" dir="rtl">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مهندس يوسف غسان</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* زر التسجيل العائم */
-    .floating-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 15px 25px;
-      border-radius: 50px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-      transition: all 0.3s ease;
-      z-index: 100;
-    }
 
-    .floating-btn:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-    }
+<meta charset="UTF-8">
+<title>موقعي</title>
 
-    /* خلفية النافذة المنبثقة */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-    }
 
-    .modal-overlay.active {
-      display: flex;
-    }
+<style>
 
-    /* النافذة المنبثقة */
-    .modal {
-      background: white;
-      padding: 40px;
-      border-radius: 15px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      position: relative;
-      animation: slideIn 0.3s ease;
-    }
+/* ضع هنا كود التصميم CSS */
 
-    @keyframes slideIn {
-      from {
-        transform: translateY(-50px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
+.register-btn{
+position:fixed;
+right:20px;
+top:20px;
+background:#667eea;
+color:white;
+padding:15px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+}
 
-    /* زر الإغلاق */
-    .close-btn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: none;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-      color: #666;
-      transition: color 0.3s;
-    }
 
-    .close-btn:hover {
-      color: #000;
-    }
+/* النافذة */
+.modal-overlay{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#0008;
+align-items:center;
+justify-content:center;
+}
 
-    .form-group {
-      margin-bottom: 20px;
-    }
 
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      color: #333;
-    }
+.modal-overlay.active{
+display:flex;
+}
 
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 5px;
-      font-size: 14px;
-      font-family: Arial, sans-serif;
-      box-sizing: border-box;
-      transition: border-color 0.3s;
-    }
 
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
+.modal{
+background:white;
+padding:30px;
+border-radius:15px;
+}
 
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
 
-    .btn-submit {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 30px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      transition: transform 0.3s;
-      width: 100%;
-    }
+</style>
 
-    .btn-submit:hover {
-      transform: translateY(-2px);
-    }
-
-    .registrations-container {
-      margin-top: 40px;
-    }
-
-    .registration-card {
-      background: #f8f9fa;
-      border-right: 4px solid #667eea;
-      padding: 20px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .registration-card h3 {
-      margin-top: 0;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .registration-card p {
-      margin: 8px 0;
-      color: #555;
-      line-height: 1.6;
-    }
-
-    .registration-card strong {
-      color: #333;
-    }
-
-    .no-registrations {
-      text-align: center;
-      color: #999;
-      padding: 30px;
-      font-size: 16px;
-    }
-
-    .delete-btn {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      margin-top: 10px;
-      transition: background-color 0.3s;
-    }
-
-    .delete-btn:hover {
-      background-color: #c82333;
-    }
-
-    .modal h2 {
-      margin-top: 0;
-      color: #333;
-      text-align: center;
-    }
-
-    .loading {
-      text-align: center;
-      color: #666;
-      padding: 20px;
-    }
-  </style>
 </head>
+
 
 <body>
 
-  <img src="images/italy.png" class="italy-flag" alt="علم إيطاليا">
 
-  <!-- زر التسجيل العائم -->
-  <button class="floating-btn" onclick="openModal()">
-    📋 التسجيل
-  </button>
+<h1>مهندس يوسف غسان</h1>
 
-  <!-- النافذة المنبثقة للتسجيل -->
-  <div class="modal-overlay" id="registrationModal">
-    <div class="modal">
-      <button class="close-btn" onclick="closeModal()">✕</button>
-      <h2>📋 نموذج التسجيل</h2>
-      <form id="registrationForm">
-        <div class="form-group">
-          <label for="name">👤 الاسم الكامل:</label>
-          <input type="text" id="name" name="name" required placeholder="أدخل اسمك الكامل">
-        </div>
+<h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
 
-        <div class="form-group">
-          <label for="phone">📞 رقم الهاتف:</label>
-          <input type="tel" id="phone" name="phone" required placeholder="مثال: 07812345678">
-        </div>
 
-        <div class="form-group">
-          <label for="address">🏠 العنوان:</label>
-          <input type="text" id="address" name="address" required placeholder="العنوان كاملاً">
-        </div>
+<!-- زر التسجيل -->
+<button class="register-btn" onclick="openRegister()">
+📝 التسجيل
+</button>
 
-        <div class="form-group">
-          <label for="region">🗺️ المنطقة/الحي:</label>
-          <input type="text" id="region" name="region" required placeholder="اسم المنطقة أو الحي">
-        </div>
 
-        <div class="form-group">
-          <label for="landmark">📍 أقرب نقطة دالة:</label>
-          <input type="text" id="landmark" name="landmark" required placeholder="مثال: بجانب المسجد الكبير">
-        </div>
 
-        <div class="form-group">
-          <label for="specialty">🔧 الاختصاص:</label>
-          <textarea id="specialty" name="specialty" required placeholder="وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)"></textarea>
-        </div>
+<!-- النافذة -->
+<div class="modal-overlay" id="box">
 
-        <button type="submit" class="btn-submit">✅ تسجيل</button>
-      </form>
-    </div>
-  </div>
 
-  <div class="container">
+<div class="modal">
 
-    <h1>مهندس يوسف غسان</h1>
 
-    <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
+<button onclick="closeRegister()">❌</button>
 
-    <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
 
-    <!-- قائمة المسجلين -->
-    <div class="registrations-container">
-      <h2>👥 المسجلون</h2>
-      <div id="registrationsList" class="loading">
-        جاري تحميل البيانات...
-      </div>
-    </div>
+<h2>اختر نوع التسجيل</h2>
 
-  </div>
 
-  <script>
-    const GITHUB_TOKEN = 'ghp_YOUR_TOKEN_HERE'; // ضع توكنك هنا
-    const REPO_OWNER = 'yousifiraqas5-byte';
-    const REPO_NAME = 'YOUSIF';
-    const FILE_PATH = 'registrations.json';
+<button onclick="maintenance()">
+🔧 صيانة
+</button>
 
-    // فتح النافذة المنبثقة
-    function openModal() {
-      document.getElementById('registrationModal').classList.add('active');
-    }
 
-    // إغلاق النافذة المنبثقة
-    function closeModal() {
-      document.getElementById('registrationModal').classList.remove('active');
-    }
+<button onclick="seller()">
+🏪 بائع
+</button>
 
-    // إغلاق النافذة عند الضغط على الخلفية
-    document.getElementById('registrationModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeModal();
-      }
-    });
 
-    // تحميل البيانات من GitHub
-    async function loadRegistrations() {
-      try {
-        const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`);
-        const registrations = await response.json();
-        const listContainer = document.getElementById('registrationsList');
 
-        if (registrations.length === 0) {
-          listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
-          return;
-        }
+<div id="services" style="display:none">
 
-        listContainer.innerHTML = '';
-        registrations.forEach((reg, index) => {
-          const card = document.createElement('div');
-          card.className = 'registration-card';
-          card.innerHTML = `
-            <h3>👤 ${reg.name}</h3>
-            <p><strong>📞 الهاتف:</strong> <a href="tel:${reg.phone}" style="color: #667eea; text-decoration: none;">${reg.phone}</a></p>
-            <p><strong>🏠 العنوان:</strong> ${reg.address}</p>
-            <p><strong>🗺️ المنطقة:</strong> ${reg.region}</p>
-            <p><strong>📍 أقرب نقطة دالة:</strong> ${reg.landmark}</p>
-            <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
-          `;
-          listContainer.appendChild(card);
-        });
-      } catch (error) {
-        console.error('خطأ في تحميل البيانات:', error);
-        document.getElementById('registrationsList').innerHTML = '<div class="no-registrations">حدث خطأ في تحميل البيانات</div>';
-      }
-    }
+<h3>اختصاص الصيانة</h3>
 
-    // حفظ التسجيل الجديد على GitHub
-    async function saveToGitHub(newReg) {
-      try {
-        // تحميل البيانات الحالية
-        const getResponse = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-          {
-            headers: {
-              'Authorization': `token ${GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json'
-            }
-          }
-        );
+<button>🔨 حداد</button>
 
-        const fileData = await getResponse.json();
-        const currentContent = JSON.parse(atob(fileData.content));
-        
-        // إضافة التسجيل الجديد
-        currentContent.push(newReg);
+<button>🚗 صدر سيارات</button>
 
-        // حفظ البيانات الجديدة
-        const updateResponse = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Authorization': `token ${GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: `Add new registration: ${newReg.name}`,
-              content: btoa(JSON.stringify(currentContent, null, 2)),
-              sha: fileData.sha
-            })
-          }
-        );
+<button>🔧 فيتر</button>
 
-        if (updateResponse.ok) {
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('خطأ في حفظ البيانات:', error);
-        return false;
-      }
-    }
+<button>⚡ كهربائي</button>
 
-    // حفظ التسجيل الجديد
-    document.getElementById('registrationForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
+<button>🛋️ صيانة صالات</button>
 
-      const newReg = {
-        name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        address: document.getElementById('address').value,
-        region: document.getElementById('region').value,
-        landmark: document.getElementById('landmark').value,
-        specialty: document.getElementById('specialty').value
-      };
+<button>🧹 تنظيف</button>
 
-      try {
-        // حفظ على GitHub
-        const success = await saveToGitHub(newReg);
+</div>
 
-        if (success) {
-          // مسح النموذج
-          document.getElementById('registrationForm').reset();
-          
-          // إغلاق النافذة
-          closeModal();
 
-          // تحديث القائمة
-          setTimeout(loadRegistrations, 1000);
 
-          alert('✅ تم التسجيل بنجاح! سيظهر على الموقع للجميع.');
-        } else {
-          alert('⚠️ خطأ في الحفظ. تأكد من صحة التوكن.');
-        }
-      } catch (error) {
-        alert('⚠️ حدث خطأ. جرب لاحقاً.');
-        console.error('خطأ:', error);
-      }
-    });
+<div id="shop" style="display:none">
 
-    // تحميل البيانات عند فتح الصفحة
-    window.addEventListener('load', loadRegistrations);
+<h3>بيانات البائع</h3>
 
-    // تحديث البيانات كل 15 ثانية
-    setInterval(loadRegistrations, 15000);
-  </script>
+<input placeholder="اسم المحل">
+
+<input placeholder="رقم الهاتف">
+
+</div>
+
+
+</div>
+
+</div>
+
+
+
+<script>
+
+
+function openRegister(){
+
+document.getElementById("box").classList.add("active");
+
+}
+
+
+
+function closeRegister(){
+
+document.getElementById("box").classList.remove("active");
+
+}
+
+
+
+function maintenance(){
+
+document.getElementById("services").style.display="block";
+
+document.getElementById("shop").style.display="none";
+
+}
+
+
+
+function seller(){
+
+document.getElementById("shop").style.display="block";
+
+document.getElementById("services").style.display="none";
+
+}
+
+
+</script>
+
 
 </body>
+
 </html>
