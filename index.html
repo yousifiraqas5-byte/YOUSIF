@@ -6,6 +6,118 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>مهندس يوسف غسان</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .form-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 10px;
+      margin: 20px 0;
+      color: white;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      box-sizing: border-box;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-submit {
+      background-color: #28a745;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+      width: 100%;
+    }
+
+    .btn-submit:hover {
+      background-color: #218838;
+    }
+
+    .registrations-container {
+      margin-top: 40px;
+    }
+
+    .registration-card {
+      background: #f8f9fa;
+      border-right: 4px solid #667eea;
+      padding: 20px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .registration-card h3 {
+      margin-top: 0;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .registration-card p {
+      margin: 8px 0;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .registration-card strong {
+      color: #333;
+    }
+
+    .no-registrations {
+      text-align: center;
+      color: #999;
+      padding: 30px;
+      font-size: 16px;
+    }
+
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+  </style>
 </head>
 
 <body>
@@ -20,7 +132,122 @@
 
     <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
 
+    <!-- نموذج التسجيل -->
+    <div class="form-container">
+      <h2>📋 نموذج التسجيل</h2>
+      <form id="registrationForm">
+        <div class="form-group">
+          <label for="name">👤 الاسم الكامل:</label>
+          <input type="text" id="name" name="name" required placeholder="أدخل اسمك الكامل">
+        </div>
+
+        <div class="form-group">
+          <label for="phone">📞 رقم الهاتف:</label>
+          <input type="tel" id="phone" name="phone" required placeholder="مثال: 07812345678">
+        </div>
+
+        <div class="form-group">
+          <label for="address">🏠 العنوان:</label>
+          <input type="text" id="address" name="address" required placeholder="العنوان كاملاً">
+        </div>
+
+        <div class="form-group">
+          <label for="region">🗺️ المنطقة/الحي:</label>
+          <input type="text" id="region" name="region" required placeholder="اسم المنطقة أو الحي">
+        </div>
+
+        <div class="form-group">
+          <label for="landmark">📍 أقرب نقطة دالة:</label>
+          <input type="text" id="landmark" name="landmark" required placeholder="مثال: بجانب المسجد الكبير">
+        </div>
+
+        <div class="form-group">
+          <label for="specialty">🔧 الاختصاص:</label>
+          <textarea id="specialty" name="specialty" required placeholder="وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)"></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">✅ تسجيل</button>
+      </form>
+    </div>
+
+    <!-- قائمة المسجلين -->
+    <div class="registrations-container">
+      <h2>👥 المسجلون</h2>
+      <div id="registrationsList" class="no-registrations">
+        لا توجد تسجيلات حتى الآن
+      </div>
+    </div>
+
   </div>
+
+  <script>
+    // تحميل البيانات من LocalStorage
+    function loadRegistrations() {
+      const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+      const listContainer = document.getElementById('registrationsList');
+
+      if (registrations.length === 0) {
+        listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
+        return;
+      }
+
+      listContainer.innerHTML = '';
+      registrations.forEach((reg, index) => {
+        const card = document.createElement('div');
+        card.className = 'registration-card';
+        card.innerHTML = `
+          <h3>👤 ${reg.name}</h3>
+          <p><strong>📞 الهاتف:</strong> ${reg.phone}</p>
+          <p><strong>🏠 العنوان:</strong> ${reg.address}</p>
+          <p><strong>🗺️ المنطقة:</strong> ${reg.region}</p>
+          <p><strong>📍 أقرب نقطة دالة:</strong> ${reg.landmark}</p>
+          <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
+          <button class="delete-btn" onclick="deleteRegistration(${index})">🗑️ حذف</button>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    // حفظ التسجيل الجديد
+    document.getElementById('registrationForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const newReg = {
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        address: document.getElementById('address').value,
+        region: document.getElementById('region').value,
+        landmark: document.getElementById('landmark').value,
+        specialty: document.getElementById('specialty').value
+      };
+
+      const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+      registrations.push(newReg);
+      localStorage.setItem('registrations', JSON.stringify(registrations));
+
+      // مسح النموذج
+      document.getElementById('registrationForm').reset();
+
+      // تحديث القائمة
+      loadRegistrations();
+
+      alert('✅ تم التسجيل بنجاح!');
+    });
+
+    // حذف تسجيل
+    function deleteRegistration(index) {
+      if (confirm('هل تريد حذف هذا التسجيل؟')) {
+        const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
+        registrations.splice(index, 1);
+        localStorage.setItem('registrations', JSON.stringify(registrations));
+        loadRegistrations();
+        alert('✅ تم الحذف بنجاح!');
+      }
+    }
+
+    // تحميل البيانات عند فتح الصفحة
+    window.addEventListener('load', loadRegistrations);
+  </script>
 
 </body>
 </html>
