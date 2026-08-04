@@ -6,124 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>مهندس يوسف غسان</title>
+
 <link rel="stylesheet" href="style.css">
-<style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-<img src="images/italy.png" class="italy-flag">
-body{
-
-height:100vh;
-
-display:flex;
-
-justify-content:center;
-
-align-items:center;
-
-background:linear-gradient(
-to bottom,
-#CE1126 33%,
-white 33%,
-white 66%,
-#000000 66%
-);
-
-}
-
-.container{
-
-width:90%;
-max-width:700px;
-
-background:rgba(255,255,255,.92);
-
-padding:40px;
-
-border-radius:20px;
-
-box-shadow:0 0 25px rgba(0,0,0,.4);
-
-text-align:center;
-
-}
-
-h1{
-
-font-size:55px;
-
-color:#0d6efd;
-
-margin-bottom:10px;
-
-}
-
-h2{
-
-font-size:28px;
-
-margin-bottom:25px;
-
-}
-
-p{
-
-font-size:22px;
-
-margin-bottom:25px;
-
-}
-
-button{
-
-background:#0d6efd;
-
-color:white;
-
-padding:15px 35px;
-
-font-size:22px;
-
-border:none;
-
-border-radius:10px;
-
-cursor:pointer;
-
-transition:.3s;
-
-}
-
-button:hover{
-
-background:#084298;
-
-transform:scale(1.05);
-
-}
-
-#result{
-
-margin-top:30px;
-
-font-size:28px;
-
-font-weight:bold;
-
-color:#006400;
-
-}
-
-</style>
 
 </head>
 
 <body>
+
+<img src="images/italy.png" class="italy-flag">
 
 <div class="container">
 
@@ -142,6 +32,7 @@ color:#006400;
 <p id="result"></p>
 
 </div>
+
 
 <script>
 
@@ -168,13 +59,12 @@ let days=[
 "السبت"
 ];
 
-document.getElementById("result").innerHTML=
-"🎉 لقد ولدت يوم <br><br><span style='color:#0d6efd;'>"+days[d.getDay()]+"</span>";
+document.getElementById("result").innerHTML =
+"🎉 لقد ولدت يوم <br><br><span>"+days[d.getDay()]+"</span>";
 
 }
 
 </script>
 
 </body>
-
 </html>
