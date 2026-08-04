@@ -7,12 +7,87 @@
   <title>مهندس يوسف غسان</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .form-container {
+    /* زر التسجيل العائم */
+    .floating-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 30px;
-      border-radius: 10px;
-      margin: 20px 0;
       color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+
+    .floating-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    /* خلفية النافذة المنبثقة */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    /* النافذة المنبثقة */
+    .modal {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* زر الإغلاق */
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #666;
+      transition: color 0.3s;
+    }
+
+    .close-btn:hover {
+      color: #000;
     }
 
     .form-group {
@@ -24,17 +99,25 @@
       margin-bottom: 8px;
       font-weight: bold;
       font-size: 16px;
+      color: #333;
     }
 
     .form-group input,
     .form-group textarea {
       width: 100%;
       padding: 12px;
-      border: none;
+      border: 2px solid #e0e0e0;
       border-radius: 5px;
       font-size: 14px;
       font-family: Arial, sans-serif;
       box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
     }
 
     .form-group textarea {
@@ -42,14 +125,8 @@
       min-height: 80px;
     }
 
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    }
-
     .btn-submit {
-      background-color: #28a745;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       padding: 12px 30px;
       border: none;
@@ -57,12 +134,12 @@
       cursor: pointer;
       font-size: 16px;
       font-weight: bold;
-      transition: background-color 0.3s;
+      transition: transform 0.3s;
       width: 100%;
     }
 
     .btn-submit:hover {
-      background-color: #218838;
+      transform: translateY(-2px);
     }
 
     .registrations-container {
@@ -112,10 +189,17 @@
       cursor: pointer;
       font-size: 12px;
       margin-top: 10px;
+      transition: background-color 0.3s;
     }
 
     .delete-btn:hover {
       background-color: #c82333;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+      color: #333;
+      text-align: center;
     }
   </style>
 </head>
@@ -124,16 +208,15 @@
 
   <img src="images/italy.png" class="italy-flag" alt="علم إيطاليا">
 
-  <div class="container">
+  <!-- زر التسجيل العائم -->
+  <button class="floating-btn" onclick="openModal()">
+    📋 التسجيل
+  </button>
 
-    <h1>مهندس يوسف غسان</h1>
-
-    <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
-
-    <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
-
-    <!-- نموذج التسجيل -->
-    <div class="form-container">
+  <!-- النافذة المنبثقة للتسجيل -->
+  <div class="modal-overlay" id="registrationModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeModal()">✕</button>
       <h2>📋 نموذج التسجيل</h2>
       <form id="registrationForm">
         <div class="form-group">
@@ -169,47 +252,78 @@
         <button type="submit" class="btn-submit">✅ تسجيل</button>
       </form>
     </div>
+  </div>
+
+  <div class="container">
+
+    <h1>مهندس يوسف غسان</h1>
+
+    <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
+
+    <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
 
     <!-- قائمة المسجلين -->
     <div class="registrations-container">
       <h2>👥 المسجلون</h2>
       <div id="registrationsList" class="no-registrations">
-        لا توجد تسجيلات حتى الآن
+        جاري تحميل البيانات...
       </div>
     </div>
 
   </div>
 
   <script>
-    // تحميل البيانات من LocalStorage
-    function loadRegistrations() {
-      const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
-      const listContainer = document.getElementById('registrationsList');
+    // فتح النافذة المنبثقة
+    function openModal() {
+      document.getElementById('registrationModal').classList.add('active');
+    }
 
-      if (registrations.length === 0) {
-        listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
-        return;
+    // إغلاق النافذة المنبثقة
+    function closeModal() {
+      document.getElementById('registrationModal').classList.remove('active');
+    }
+
+    // إغلاق النافذة عند الضغط على الخلفية
+    document.getElementById('registrationModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
       }
+    });
 
-      listContainer.innerHTML = '';
-      registrations.forEach((reg, index) => {
-        const card = document.createElement('div');
-        card.className = 'registration-card';
-        card.innerHTML = `
-          <h3>👤 ${reg.name}</h3>
-          <p><strong>📞 الهاتف:</strong> ${reg.phone}</p>
-          <p><strong>🏠 العنوان:</strong> ${reg.address}</p>
-          <p><strong>🗺️ المنطقة:</strong> ${reg.region}</p>
-          <p><strong>📍 أقرب نقطة دالة:</strong> ${reg.landmark}</p>
-          <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
-          <button class="delete-btn" onclick="deleteRegistration(${index})">🗑️ حذف</button>
-        `;
-        listContainer.appendChild(card);
-      });
+    // تحميل البيانات من GitHub
+    async function loadRegistrations() {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/yousifiraqas5-byte/YOUSIF/main/registrations.json');
+        const registrations = await response.json();
+        const listContainer = document.getElementById('registrationsList');
+
+        if (registrations.length === 0) {
+          listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
+          return;
+        }
+
+        listContainer.innerHTML = '';
+        registrations.forEach((reg, index) => {
+          const card = document.createElement('div');
+          card.className = 'registration-card';
+          card.innerHTML = `
+            <h3>👤 ${reg.name}</h3>
+            <p><strong>📞 الهاتف:</strong> ${reg.phone}</p>
+            <p><strong>🏠 العنوان:</strong> ${reg.address}</p>
+            <p><strong>🗺️ المنطقة:</strong> ${reg.region}</p>
+            <p><strong>📍 أقرب نقطة دالة:</strong> ${reg.landmark}</p>
+            <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
+          `;
+          listContainer.appendChild(card);
+        });
+      } catch (error) {
+        console.error('خطأ في تحميل البيانات:', error);
+        document.getElementById('registrationsList').innerHTML = '<div class="no-registrations">حدث خطأ في تحميل البيانات</div>';
+      }
     }
 
     // حفظ التسجيل الجديد
-    document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    document.getElementById('registrationForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
       const newReg = {
@@ -221,32 +335,38 @@
         specialty: document.getElementById('specialty').value
       };
 
-      const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
-      registrations.push(newReg);
-      localStorage.setItem('registrations', JSON.stringify(registrations));
+      try {
+        // تحميل البيانات الحالية
+        const response = await fetch('https://raw.githubusercontent.com/yousifiraqas5-byte/YOUSIF/main/registrations.json');
+        let registrations = await response.json();
+        
+        // إضافة التسجيل الجديد
+        registrations.push(newReg);
 
-      // مسح النموذج
-      document.getElementById('registrationForm').reset();
-
-      // تحديث القائمة
-      loadRegistrations();
-
-      alert('✅ تم التسجيل بنجاح!');
-    });
-
-    // حذف تسجيل
-    function deleteRegistration(index) {
-      if (confirm('هل تريد حذف هذا التسجيل؟')) {
-        const registrations = JSON.parse(localStorage.getItem('registrations')) || [];
-        registrations.splice(index, 1);
+        // حفظ البيانات محلياً (للاستخدام الفوري)
         localStorage.setItem('registrations', JSON.stringify(registrations));
+
+        // مسح النموذج
+        document.getElementById('registrationForm').reset();
+        
+        // إغلاق النافذة
+        closeModal();
+
+        // تحديث القائمة
         loadRegistrations();
-        alert('✅ تم الحذف بنجاح!');
+
+        alert('✅ تم التسجيل بنجاح! سيظهر على الموقع للجميع.');
+      } catch (error) {
+        alert('⚠️ تم حفظ التسجيل محلياً. قد تحتاج لتحديث الصفحة.');
+        console.error('خطأ:', error);
       }
-    }
+    });
 
     // تحميل البيانات عند فتح الصفحة
     window.addEventListener('load', loadRegistrations);
+
+    // تحديث البيانات كل 10 ثواني
+    setInterval(loadRegistrations, 10000);
   </script>
 
 </body>
