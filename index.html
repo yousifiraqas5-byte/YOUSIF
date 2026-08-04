@@ -103,7 +103,8 @@
     }
 
     .form-group input,
-    .form-group textarea {
+    .form-group textarea,
+    .form-group select {
       width: 100%;
       padding: 12px;
       border: 2px solid #e0e0e0;
@@ -115,7 +116,8 @@
     }
 
     .form-group input:focus,
-    .form-group textarea:focus {
+    .form-group textarea:focus,
+    .form-group select:focus {
       outline: none;
       border-color: #667eea;
     }
@@ -290,6 +292,28 @@
           <input type="text" id="landmark" name="landmark" required placeholder="مثال: بجانب المسجد الكبير">
         </div>
 
+        <!-- نوع التسجيل: بائع أو صيانة -->
+        <div class="form-group">
+          <label for="regType">🔽 نوع التسجيل:</label>
+          <select id="regType" name="regType" required>
+            <option value="">اختر نوع التسجيل</option>
+            <option value="seller">بائع</option>
+            <option value="maintenance">صيانة</option>
+          </select>
+        </div>
+
+        <!-- خيارات الصيانة الفرعية (تظهر فقط عند اختيار صيانة) -->
+        <div class="form-group" id="maintenanceOptions" style="display:none;">
+          <label for="maintenanceType">🛠️ اختر تخصص الصيانة:</label>
+          <select id="maintenanceType" name="maintenanceType">
+            <option value="">اختر التخصص</option>
+            <option value="حداد صدر">حداد صدر</option>
+            <option value="فني تبريد">فني تبريد</option>
+            <option value="فيتر">فيتر</option>
+            <option value="كهربائي">كهربائي</option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label for="specialty">🔧 الاختصاص:</label>
           <textarea id="specialty" name="specialty" required placeholder="وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)"></textarea>
@@ -338,6 +362,36 @@
     document.getElementById('registrationModal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeModal();
+      }
+    });
+
+    // تفاعل الحقول: إظهار خيارات الصيانة وعمل مزامنة مع حقل الاختصاص
+    const regTypeSelect = document.getElementById('regType');
+    const maintenanceOptionsDiv = document.getElementById('maintenanceOptions');
+    const maintenanceTypeSelect = document.getElementById('maintenanceType');
+    const specialtyTextarea = document.getElementById('specialty');
+
+    regTypeSelect.addEventListener('change', function() {
+      if (this.value === 'maintenance') {
+        maintenanceOptionsDiv.style.display = 'block';
+        // ضع قيمة افتراضية في الاختصاص إذا تم اختيار شيء في الصيانة
+        if (maintenanceTypeSelect.value) {
+          specialtyTextarea.value = maintenanceTypeSelect.value;
+        } else {
+          specialtyTextarea.value = '';
+          specialtyTextarea.placeholder = 'اختر تخصص الصيانة من القائمة أو اكتب وصفاً إضافياً';
+        }
+      } else {
+        maintenanceOptionsDiv.style.display = 'none';
+        // إذا كان بائع، اترك حقل الاختصاص قابل للكتابة
+        specialtyTextarea.value = '';
+        specialtyTextarea.placeholder = 'وصف تخصصك (مثال: منتجات�� أو خدماتك)';
+      }
+    });
+
+    maintenanceTypeSelect.addEventListener('change', function() {
+      if (this.value) {
+        specialtyTextarea.value = this.value;
       }
     });
 
@@ -441,6 +495,8 @@
         if (success) {
           // مسح النموذج
           document.getElementById('registrationForm').reset();
+          // أعد إخفاء خيارات الصيانة
+          maintenanceOptionsDiv.style.display = 'none';
           
           // إغلاق النافذة
           closeModal();
