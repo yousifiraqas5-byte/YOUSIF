@@ -2,69 +2,76 @@
 <html lang="ar" dir="rtl">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>مهندس يوسف غسان</title>
-
-<link rel="stylesheet" href="style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مهندس يوسف غسان</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<img src="images/italy.png" class="italy-flag">
+  <img src="images/italy.png" class="italy-flag" alt="علم إيطاليا">
 
-<div class="container">
+  <div class="container">
 
-<h1>مهندس يوسف غسان</h1>
+    <h1>مهندس يوسف غسان</h1>
 
-<h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
+    <h2>🇮🇶 Mechanical Engineer 🇮🇶</h2>
 
-<p>
-أهلاً وسهلاً بكم في موقعي الشخصي
-</p>
+    <p>أهلاً وسهلاً بكم في موقعي الشخصي</p>
 
-<button onclick="birthDay()">
-اعرف يوم ولادتك
-</button>
+    <button type="button" onclick="birthDay()">
+      اعرف يوم ولادتك
+    </button>
 
-<p id="result"></p>
+    <p id="result" aria-live="polite"></p>
 
-</div>
+  </div>
 
+  <script>
+    function parseISODate(input) {
+      // توقع الشكل YYYY-MM-DD
+      const parts = input.split('-');
+      if (parts.length !== 3) return null;
+      const [y, m, d] = parts.map(p => Number(p));
+      if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
+      // تحقق مبسّط على القيم
+      if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+      return new Date(y, m - 1, d);
+    }
 
-<script>
+    function birthDay() {
+      let date = prompt("أدخل تاريخ ميلادك بالشكل التالي:\n2000-05-15");
+      if (date == null || date.trim() === "") return;
 
-function birthDay(){
+      // نستخدم تحليلاً آمناً لتجنب اختلافات المتصفحات
+      let d = parseISODate(date.trim());
 
-let date=prompt("أدخل تاريخ ميلادك بالشكل التالي:\n2000-05-15");
+      // فشل التحليل -> حاول إنشاء Date كخطة بديلة
+      if (!d) {
+        d = new Date(date);
+      }
 
-if(date==null || date=="") return;
+      // تحقق موثوق من صلاحية التاريخ
+      if (!d || isNaN(d.getTime())) {
+        alert("الرجاء إدخال التاريخ بالشكل الصحيح (مثال: 2000-05-15)");
+        return;
+      }
 
-let d=new Date(date);
+      const days = [
+        "الأحد",
+        "الاثنين",
+        "الثلاثاء",
+        "الأربعاء",
+        "الخميس",
+        "الجمعة",
+        "السبت"
+      ];
 
-if(isNaN(d)){
-alert("الرجاء إدخال التاريخ بالشكل الصحيح");
-return;
-}
-
-let days=[
-"الأحد",
-"الاثنين",
-"الثلاثاء",
-"الأربعاء",
-"الخميس",
-"الجمعة",
-"السبت"
-];
-
-document.getElementById("result").innerHTML =
-"🎉 لقد ولدت يوم <br><br><span>"+days[d.getDay()]+"</span>";
-
-}
-
-</script>
+      document.getElementById("result").innerHTML =
+        "🎉 لقد ولدت يوم <br><br><span>" + days[d.getDay()] + "</span>";
+    }
+  </script>
 
 </body>
 </html>
