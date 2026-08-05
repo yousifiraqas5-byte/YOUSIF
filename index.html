@@ -62,6 +62,13 @@
       animation: slideIn 0.3s ease;
     }
 
+    /* نافذة اختيار النوع أصغر */
+    .type-modal .modal {
+      max-width: 360px;
+      padding: 24px;
+      text-align: center;
+    }
+
     @keyframes slideIn {
       from {
         transform: translateY(-50px);
@@ -261,6 +268,19 @@
     📋 التسجيل
   </button>
 
+  <!-- نافذة اختيار نوع التسجيل (تظهر أولاً) -->
+  <div class="modal-overlay type-modal" id="typeModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeTypeModal()">✕</button>
+      <h2>اختر نوع التسجيل</h2>
+      <p style="margin-bottom:16px; color:#555;">هل تريد التسجيل كبائع أم كخدمة صيانة؟</p>
+      <div style="display:flex; gap:12px; justify-content:center;">
+        <button onclick="selectRegistrationType('seller')" style="background:#28a745;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛒 مبيعات</button>
+        <button onclick="selectRegistrationType('maintenance')" style="background:#007bff;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛠️ صيانة</button>
+      </div>
+    </div>
+  </div>
+
   <!-- النافذة المنبثقة للتسجيل -->
   <div class="modal-overlay" id="registrationModal">
     <div class="modal">
@@ -348,9 +368,43 @@
     const REPO_NAME = 'YOUSIF';
     const FILE_PATH = 'registrations.json';
 
-    // فتح النافذة المنبثقة
-    function openModal() {
+    // فتح نافذة اختيار النوع
+    function openTypeModal() {
+      document.getElementById('typeModal').classList.add('active');
+    }
+
+    function closeTypeModal() {
+      document.getElementById('typeModal').classList.remove('active');
+    }
+
+    // الاحتفاظ بمرجع لعناصر النموذج
+    const regTypeSelect = document.getElementById('regType');
+    const maintenanceOptionsDiv = document.getElementById('maintenanceOptions');
+    const maintenanceTypeSelect = document.getElementById('maintenanceType');
+    const specialtyTextarea = document.getElementById('specialty');
+
+    // دالة تستدعى عند اختيار نوع التسجيل من النافذة الأولى
+    function selectRegistrationType(type) {
+      // أغلق نافذة النوع
+      closeTypeModal();
+
+      // ضع قيمة النوع في حقل الاختيار داخل النموذج
+      regTypeSelect.value = type;
+      // أظهر/اخفِ خيارات الصيانة بحسب النوع
+      regTypeSelect.dispatchEvent(new Event('change'));
+
+      // افتح نافذة التسجيل
       document.getElementById('registrationModal').classList.add('active');
+
+      // ضع تركيز على حقل الاسم
+      setTimeout(() => {
+        document.getElementById('name').focus();
+      }, 200);
+    }
+
+    // فتح النافذة الرئيسية الآن يفتح نافذة اختيار النوع أولاً
+    function openModal() {
+      openTypeModal();
     }
 
     // إغلاق النافذة المنبثقة
@@ -358,19 +412,21 @@
       document.getElementById('registrationModal').classList.remove('active');
     }
 
-    // إغلاق النافذة عند الضغط على الخلفية
+    // إغلاق النافذة عند الضغط على الخلفية (للنموذج الرئيسي)
     document.getElementById('registrationModal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeModal();
       }
     });
 
-    // تفاعل الحقول: إظهار خيارات الصيانة وعمل مزامنة مع حقل الاختصاص
-    const regTypeSelect = document.getElementById('regType');
-    const maintenanceOptionsDiv = document.getElementById('maintenanceOptions');
-    const maintenanceTypeSelect = document.getElementById('maintenanceType');
-    const specialtyTextarea = document.getElementById('specialty');
+    // إغلاق نافذة النوع عند الضغط على الخلفية
+    document.getElementById('typeModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeTypeModal();
+      }
+    });
 
+    // تفاعل الحقول: إظهار خيارات الصيانة وعمل مزامنة مع حقل الاختصاص
     regTypeSelect.addEventListener('change', function() {
       if (this.value === 'maintenance') {
         maintenanceOptionsDiv.style.display = 'block';
@@ -385,7 +441,7 @@
         maintenanceOptionsDiv.style.display = 'none';
         // إذا كان بائع، اترك حقل الاختصاص قابل للكتابة
         specialtyTextarea.value = '';
-        specialtyTextarea.placeholder = 'وصف تخصصك (مثال: منتجات�� أو خدماتك)';
+        specialtyTextarea.placeholder = 'وصف تخصصك (مثال: منتجات أو خدماتك)';
       }
     });
 
@@ -485,7 +541,8 @@
         address: document.getElementById('address').value,
         region: document.getElementById('region').value,
         landmark: document.getElementById('landmark').value,
-        specialty: document.getElementById('specialty').value
+        specialty: document.getElementById('specialty').value,
+        type: document.getElementById('regType').value
       };
 
       try {
