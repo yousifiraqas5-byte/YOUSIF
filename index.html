@@ -331,6 +331,20 @@
             <option value="فني تبريد">فني تبريد</option>
             <option value="فيتر">فيتر</option>
             <option value="كهربائي">كهربائي</option>
+            <option value="ميكانيكي عام">ميكانيكي عام</option>
+          </select>
+        </div>
+
+        <!-- خيارات البائع الفرعية (تظهر فقط عند اختيار بائع) -->
+        <div class="form-group" id="sellerOptions" style="display:none;">
+          <label for="sellerType">🚗 نوع السيارة (للمبيعات):</label>
+          <select id="sellerType" name="sellerType">
+            <option value="">اختر نوع السيارة</option>
+            <option value="سيارة ركاب">سيارة ركاب</option>
+            <option value="شاحنة">شاحنة</option>
+            <option value="دراجة نارية">دراجة نارية</option>
+            <option value="سيارة نقل">سيارة نقل</option>
+            <option value="معدات ثقيلة">معدات ثقيلة</option>
           </select>
         </div>
 
@@ -381,6 +395,8 @@
     const regTypeSelect = document.getElementById('regType');
     const maintenanceOptionsDiv = document.getElementById('maintenanceOptions');
     const maintenanceTypeSelect = document.getElementById('maintenanceType');
+    const sellerOptionsDiv = document.getElementById('sellerOptions');
+    const sellerTypeSelect = document.getElementById('sellerType');
     const specialtyTextarea = document.getElementById('specialty');
 
     // دالة تستدعى عند اختيار نوع التسجيل من النافذة الأولى
@@ -390,7 +406,7 @@
 
       // ضع قيمة النوع في حقل الاختيار داخل النموذج
       regTypeSelect.value = type;
-      // أظهر/اخفِ خيارات الصيانة بحسب النوع
+      // أظهر/اخفِ الخيارات بحسب النوع
       regTypeSelect.dispatchEvent(new Event('change'));
 
       // افتح نافذة التسجيل
@@ -426,26 +442,35 @@
       }
     });
 
-    // تفاعل الحقول: إظهار خيارات الصيانة وعمل مزامنة مع حقل الاختصاص
+    // تفاعل الحقول: إظهار خيارات الصيانة أو البائع وعمل مزامنة مع حقل الاختصاص
     regTypeSelect.addEventListener('change', function() {
       if (this.value === 'maintenance') {
         maintenanceOptionsDiv.style.display = 'block';
-        // ضع قيمة افتراضية في الاختصاص إذا تم اختيار شيء في الصيانة
-        if (maintenanceTypeSelect.value) {
-          specialtyTextarea.value = maintenanceTypeSelect.value;
-        } else {
-          specialtyTextarea.value = '';
-          specialtyTextarea.placeholder = 'اختر تخصص الصيانة من القائمة أو اكتب وصفاً إضافياً';
-        }
+        sellerOptionsDiv.style.display = 'none';
+        // اجعل حقل الاختصاص يوضح التوجيه للصيانة
+        specialtyTextarea.value = maintenanceTypeSelect.value ? maintenanceTypeSelect.value : '';
+        specialtyTextarea.placeholder = 'اختر تخصص الصيانة من القائمة أو اكتب وصفاً إضافياً';
+      } else if (this.value === 'seller') {
+        maintenanceOptionsDiv.style.display = 'none';
+        sellerOptionsDiv.style.display = 'block';
+        // اجعل حقل الاختصاص يوضح التوجيه للمبيعات
+        specialtyTextarea.value = sellerTypeSelect.value ? sellerTypeSelect.value : '';
+        specialtyTextarea.placeholder = 'اختر نوع السيارة من القائمة أو اكتب وصفاً إضافياً عن منتجاتك';
       } else {
         maintenanceOptionsDiv.style.display = 'none';
-        // إذا كان بائع، اترك حقل الاختصاص قابل للكتابة
+        sellerOptionsDiv.style.display = 'none';
         specialtyTextarea.value = '';
-        specialtyTextarea.placeholder = 'وصف تخصصك (مثال: منتجات أو خدماتك)';
+        specialtyTextarea.placeholder = 'وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)';
       }
     });
 
     maintenanceTypeSelect.addEventListener('change', function() {
+      if (this.value) {
+        specialtyTextarea.value = this.value;
+      }
+    });
+
+    sellerTypeSelect.addEventListener('change', function() {
       if (this.value) {
         specialtyTextarea.value = this.value;
       }
@@ -458,7 +483,7 @@
         const registrations = await response.json();
         const listContainer = document.getElementById('registrationsList');
 
-        if (registrations.length === 0) {
+        if (!Array.isArray(registrations) || registrations.length === 0) {
           listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
           return;
         }
@@ -474,6 +499,7 @@
             <p><strong>🗺️ المنطقة:</strong> ${reg.region}</p>
             <p><strong>📍 أقرب نقطة دالة:</strong> ${reg.landmark}</p>
             <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
+            <p><strong>🔽 النوع:</strong> ${reg.type || ''}</p>
           `;
           listContainer.appendChild(card);
         });
@@ -552,8 +578,9 @@
         if (success) {
           // مسح النموذج
           document.getElementById('registrationForm').reset();
-          // أعد إخفاء خيارات الصيانة
+          // أعد إخفاء خيارات الصيانة والبائع
           maintenanceOptionsDiv.style.display = 'none';
+          sellerOptionsDiv.style.display = 'none';
           
           // إغلاق النافذة
           closeModal();
