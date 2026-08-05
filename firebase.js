@@ -10,12 +10,12 @@ import {
 
 // ضع بيانات مشروعك هنا
 const firebaseConfig = {
-  apiKey: "ضع_apiKey_هنا",
-  authDomain: "ضع_authDomain_هنا",
-  projectId: "ضع_projectId_هنا",
-  storageBucket: "ضع_storageBucket_هنا",
-  messagingSenderId: "ضع_messagingSenderId_هنا",
-  appId: "ضع_appId_هنا"
+  apiKey: "AIzaSyAdGFdlWaYzYFmjWdJjfUPkD4ODtsfCTHM",
+  authDomain: "yousif-4cc87.firebaseapp.com",
+  projectId: "yousif-4cc87",
+  storageBucket: "yousif-4cc87.firebasestorage.app",
+  messagingSenderId: "1088580081605",
+  appId: "1:1088580081605:web:aa3983dbd53c84f7c69dac"
 };
 
 // تشغيل Firebase
