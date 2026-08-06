@@ -454,6 +454,9 @@
       }
     }
 
+    // make callable from Console for debugging
+    window.loadRegistrations = loadRegistrations;
+
     // حفظ التسجيل عبر Firestore
     registrationForm.addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -473,7 +476,8 @@
           maintenanceOptionsDiv.style.display = 'none';
           sellerOptionsDiv.style.display = 'none';
           closeModal();
-          setTimeout(loadRegistrations, 700);
+          // call immediately to refresh list
+          loadRegistrations();
           alert('✅ تم التسجيل بنجاح! سيظهر على الموقع للجميع.');
         } else {
           alert('⚠️ خطأ في الحفظ. حاول لاحقاً.');
@@ -493,7 +497,6 @@
     setInterval(loadRegistrations, 15000);
   </script>
 
-  <script type="module" src="firebase.js"></script>
   <script type="module" src="script.js"></script>
 
 </body>
