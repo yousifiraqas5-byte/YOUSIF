@@ -1,5 +1,6 @@
 // Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
 import {
   getFirestore,
   collection,
@@ -7,10 +8,15 @@ import {
   getDocs,
   serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  where
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 // ضع بيانات مشروعك هنا (تأكد أنها تطابق Project settings في Console)
 const firebaseConfig = {
   apiKey: "AIzaSyAdGFdlWaYzYFmjWdJjfUPkD4ODtsfCTHM",
@@ -109,6 +115,52 @@ return regs;
     }
   } catch (err) {
     console.error('Failed to get registrations:', err);
+    return [];
+  }
+}
+// ==========================
+// Comments Functions
+// ==========================
+
+export async function saveComment(data) {
+  try {
+    const ref = await addDoc(collection(db, "comments"), {
+      ...data,
+      createdAt: serverTimestamp()
+    });
+
+    console.log("Comment saved:", ref.id);
+    return true;
+
+  } catch (err) {
+    console.error("Failed to save comment:", err);
+    return false;
+  }
+}
+
+export async function getComments(shopId) {
+  try {
+    const q = query(
+      collection(db, "comments"),
+      where("shopId", "==", shopId),
+      orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    const comments = [];
+
+    snapshot.forEach((doc) => {
+      comments.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    return comments;
+
+  } catch (err) {
+    console.error("Failed to get comments:", err);
     return [];
   }
 }
