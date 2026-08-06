@@ -275,8 +275,8 @@
       <h2>اختر نوع التسجيل</h2>
       <p style="margin-bottom:16px; color:#555;">هل تريد التسجيل كبائع أم كخدمة صيانة؟</p>
       <div style="display:flex; gap:12px; justify-content:center;">
-        <button onclick="selectRegistrationType('seller')" style="background:#28a745;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛒 مبيعات&lt;[...]</button>
-        <button onclick="selectRegistrationType('maintenance')" style="background:#007bff;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛠️ صي�&lt;[...]</button>
+        <button onclick="selectRegistrationType('seller')" style="background:#28a745;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛒 مبيعات</button>
+        <button onclick="selectRegistrationType('maintenance')" style="background:#007bff;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛠️ صيانة</button>
       </div>
     </div>
   </div>
@@ -376,84 +376,42 @@
 
   </div>
 
-  <script>
-    const GITHUB_TOKEN = 'ghp_YOUR_TOKEN_HERE'; // ضع توكنك هنا
-    const REPO_OWNER = 'yousifiraqas5-byte';
-    const REPO_NAME = 'YOUSIF';
-    const FILE_PATH = 'registrations.json';
+  <script type="module">
+    import { saveRegistration, getRegistrations } from './firebase.js';
 
-    // فتح نافذة اختيار النوع
-    function openTypeModal() {
-      document.getElementById('typeModal').classList.add('active');
-    }
-
-    function closeTypeModal() {
-      document.getElementById('typeModal').classList.remove('active');
-    }
-
-    // الاحتفاظ بمرجع لعناصر النموذج
+    // عناصر DOM
     const regTypeSelect = document.getElementById('regType');
     const maintenanceOptionsDiv = document.getElementById('maintenanceOptions');
     const maintenanceTypeSelect = document.getElementById('maintenanceType');
     const sellerOptionsDiv = document.getElementById('sellerOptions');
     const sellerTypeSelect = document.getElementById('sellerType');
     const specialtyTextarea = document.getElementById('specialty');
+    const registrationsList = document.getElementById('registrationsList');
+    const registrationForm = document.getElementById('registrationForm');
 
-    // دالة تستدعى عند اختيار نوع التسجيل من النافذة الأولى
+    // فتح/إغلاق النوافذ (نفس الدوال القديمة)
+    function openTypeModal() { document.getElementById('typeModal').classList.add('active'); }
+    function closeTypeModal() { document.getElementById('typeModal').classList.remove('active'); }
     function selectRegistrationType(type) {
-      // أغلق نافذة النوع
       closeTypeModal();
-
-      // ضع قيمة النوع في حقل الاختيار داخل النموذج
       regTypeSelect.value = type;
-      // أظهر/اخفِ الخيارات بحسب النوع
       regTypeSelect.dispatchEvent(new Event('change'));
-
-      // افتح نافذة التسجيل
       document.getElementById('registrationModal').classList.add('active');
-
-      // ضع تركيز على حقل الاسم
-      setTimeout(() => {
-        document.getElementById('name').focus();
-      }, 200);
+      setTimeout(() => document.getElementById('name').focus(), 200);
     }
+    function openModal() { openTypeModal(); }
+    function closeModal() { document.getElementById('registrationModal').classList.remove('active'); }
 
-    // فتح النافذة الرئيسية الآن يفتح نافذة اختيار النوع أولاً
-    function openModal() {
-      openTypeModal();
-    }
-
-    // إغلاق النافذة المنبثقة
-    function closeModal() {
-      document.getElementById('registrationModal').classList.remove('active');
-    }
-
-    // إغلاق النافذة عند الضغط على الخلفية (للنموذج الرئيسي)
-    document.getElementById('registrationModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeModal();
-      }
-    });
-
-    // إغلاق نافذة النوع عند الضغط على الخلفية
-    document.getElementById('typeModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeTypeModal();
-      }
-    });
-
-    // تفاعل الحقول: إظهار خيارات الصيانة أو البائع وعمل مزامنة مع حقل الاختصاص
+    // إظهار الخيارات بحسب النوع
     regTypeSelect.addEventListener('change', function() {
       if (this.value === 'maintenance') {
         maintenanceOptionsDiv.style.display = 'block';
         sellerOptionsDiv.style.display = 'none';
-        // اجعل حقل الاختصاص يوضح التوجيه للصيانة
         specialtyTextarea.value = maintenanceTypeSelect.value ? maintenanceTypeSelect.value : '';
         specialtyTextarea.placeholder = 'اختر تخصص الصيانة من القائمة أو اكتب وصفاً إضافياً';
       } else if (this.value === 'seller') {
         maintenanceOptionsDiv.style.display = 'none';
         sellerOptionsDiv.style.display = 'block';
-        // اجعل حقل الاختصاص يوضح التوجيه للمبيعات
         specialtyTextarea.value = sellerTypeSelect.value ? sellerTypeSelect.value : '';
         specialtyTextarea.placeholder = 'اختر نوع السيارة من القائمة أو اكتب وصفاً إضافياً عن منتجاتك';
       } else {
@@ -463,33 +421,20 @@
         specialtyTextarea.placeholder = 'وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)';
       }
     });
+    maintenanceTypeSelect.addEventListener('change', () => { if (maintenanceTypeSelect.value) specialtyTextarea.value = maintenanceTypeSelect.value; });
+    sellerTypeSelect.addEventListener('change', () => { if (sellerTypeSelect.value) specialtyTextarea.value = sellerTypeSelect.value; });
 
-    maintenanceTypeSelect.addEventListener('change', function() {
-      if (this.value) {
-        specialtyTextarea.value = this.value;
-      }
-    });
-
-    sellerTypeSelect.addEventListener('change', function() {
-      if (this.value) {
-        specialtyTextarea.value = this.value;
-      }
-    });
-
-    // تحميل البيانات من GitHub
+    // تحميل التسجيلات من Firestore وعرضها
     async function loadRegistrations() {
+      registrationsList.innerHTML = 'جارٍ تحميل البيانات...';
       try {
-        const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`);
-        const registrations = await response.json();
-        const listContainer = document.getElementById('registrationsList');
-
-        if (!Array.isArray(registrations) || registrations.length === 0) {
-          listContainer.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
+        const regs = await getRegistrations();
+        if (!Array.isArray(regs) || regs.length === 0) {
+          registrationsList.innerHTML = '<div class="no-registrations">لا توجد تسجيلات حتى الآن</div>';
           return;
         }
-
-        listContainer.innerHTML = '';
-        registrations.forEach((reg, index) => {
+        registrationsList.innerHTML = '';
+        regs.forEach(reg => {
           const card = document.createElement('div');
           card.className = 'registration-card';
           card.innerHTML = `
@@ -501,66 +446,17 @@
             <p><strong>🔧 الاختصاص:</strong> ${reg.specialty}</p>
             <p><strong>🔽 النوع:</strong> ${reg.type || ''}</p>
           `;
-          listContainer.appendChild(card);
+          registrationsList.appendChild(card);
         });
-      } catch (error) {
-        console.error('خطأ في تحميل البيانات:', error);
-        document.getElementById('registrationsList').innerHTML = '<div class="no-registrations">حدث خطأ في تحميل البيانات</div>';
+      } catch (err) {
+        console.error('Error loading registrations:', err);
+        registrationsList.innerHTML = '<div class="no-registrations">حدث خطأ في تحميل البيانات</div>';
       }
     }
 
-    // حفظ التسجيل الجديد على GitHub
-    async function saveToGitHub(newReg) {
-      try {
-        // تحميل البيانات الحالية
-        const getResponse = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-          {
-            headers: {
-              'Authorization': `token ${GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json'
-            }
-          }
-        );
-
-        const fileData = await getResponse.json();
-        const currentContent = JSON.parse(atob(fileData.content));
-        
-        // إضافة التسجيل الجديد
-        currentContent.push(newReg);
-
-        // حفظ البيانات الجديدة
-        const updateResponse = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Authorization': `token ${GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: `Add new registration: ${newReg.name}`,
-              content: btoa(JSON.stringify(currentContent, null, 2)),
-              sha: fileData.sha
-            })
-          }
-        );
-
-        if (updateResponse.ok) {
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('خطأ في حفظ البيانات:', error);
-        return false;
-      }
-    }
-
-    // حفظ التسجيل الجديد
-    document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+    // حفظ التسجيل عبر Firestore
+    registrationForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-
       const newReg = {
         name: document.getElementById('name').value,
         phone: document.getElementById('phone').value,
@@ -570,38 +466,30 @@
         specialty: document.getElementById('specialty').value,
         type: document.getElementById('regType').value
       };
-
       try {
-        // حفظ على GitHub
-        const success = await saveToGitHub(newReg);
-
+        const success = await saveRegistration(newReg);
         if (success) {
-          // مسح النموذج
-          document.getElementById('registrationForm').reset();
-          // أعد إخفاء خيارات الصيانة والبائع
+          registrationForm.reset();
           maintenanceOptionsDiv.style.display = 'none';
           sellerOptionsDiv.style.display = 'none';
-          
-          // إغلاق النافذة
           closeModal();
-
-          // تحديث القائمة
-          setTimeout(loadRegistrations, 1000);
-
+          setTimeout(loadRegistrations, 700);
           alert('✅ تم التسجيل بنجاح! سيظهر على الموقع للجميع.');
         } else {
-          alert('⚠️ خطأ في الحفظ. تأكد من صحة التوكن.');
+          alert('⚠️ خطأ في الحفظ. حاول لاحقاً.');
         }
-      } catch (error) {
+      } catch (err) {
+        console.error('Save registration error:', err);
         alert('⚠️ حدث خطأ. جرب لاحقاً.');
-        console.error('خطأ:', error);
       }
     });
 
-    // تحميل البيانات عند فتح الصفحة
-    window.addEventListener('load', loadRegistrations);
+    // إغلاق النوافذ عند النقر على الخلفية
+    document.getElementById('registrationModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+    document.getElementById('typeModal').addEventListener('click', function(e) { if (e.target === this) closeTypeModal(); });
 
-    // تحديث البيانات كل 15 ثانية
+    // بدء التحميل عند فتح الصفحة وتحديث دوري
+    window.addEventListener('load', loadRegistrations);
     setInterval(loadRegistrations, 15000);
   </script>
 
