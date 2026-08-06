@@ -43,10 +43,11 @@ const db = getFirestore(app);
 // حفظ محل
 export async function saveShop(data) {
   try {
-    await addDoc(collection(db, "shops"), {
+    const ref = await addDoc(collection(db, "shops"), {
       ...data,
       createdAt: serverTimestamp()
     });
+    console.log('saveShop: created doc', ref.id);
     return true;
   } catch (err) {
     console.error('Failed to save shop:', err);
@@ -60,9 +61,7 @@ export async function getShops() {
     const snapshot = await getDocs(collection(db, "shops"));
 
     const shops = [];
-    snapshot.forEach((doc) => {
-      shops.push({ id: doc.id, ...doc.data() });
-    });
+    snapshot.forEach((doc) => shops.push({ id: doc.id, ...doc.data() }));
 
     return shops;
   } catch (err) {
@@ -74,10 +73,11 @@ export async function getShops() {
 // حفظ تسجيل من النموذج
 export async function saveRegistration(data) {
   try {
-    await addDoc(collection(db, "registrations"), {
+    const ref = await addDoc(collection(db, "registrations"), {
       ...data,
       createdAt: serverTimestamp()
     });
+    console.log('saveRegistration: created doc', ref.id);
     return true;
   } catch (err) {
     console.error('Failed to save registration:', err);
@@ -88,11 +88,23 @@ export async function saveRegistration(data) {
 // جلب التسجيلات مرتبة بحسب الأحدث
 export async function getRegistrations() {
   try {
-    const q = query(collection(db, "registrations"), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const regs = [];
-    snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
-    return regs;
+    // حاول الاستعلام المرتب أولاً
+    try {
+      const q = query(collection(db, "registrations"), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const regs = [];
+      snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
+      console.log('getRegistrations: fetched', regs.length, 'items (ordered)');
+      return regs;
+    } catch (innerErr) {
+      // قد يفشل الأمر إذا لم يوجد حقل createdAt في المستندات بعد، فالتراجع إلى جلبٍ بسيط
+      console.warn('Ordered query failed, falling back to simple getDocs:', innerErr);
+      const snapshot = await getDocs(collection(db, "registrations"));
+      const regs = [];
+      snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
+      console.log('getRegistrations: fetched', regs.length, 'items (fallback)');
+      return regs;
+    }
   } catch (err) {
     console.error('Failed to get registrations:', err);
     return [];
