@@ -11,12 +11,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// ضع بيانات مشروعك هنا
+// ضع بيانات مشروعك هنا (تأكد أنها تطابق Project settings في Console)
 const firebaseConfig = {
   apiKey: "AIzaSyAdGFdlWaYzYFmjWdJjfUPkD4ODtsfCTHM",
   authDomain: "yousif-4cc87.firebaseapp.com",
   projectId: "yousif-4cc87",
-storageBucket: "yousif-4cc87.firebasestorage.app",
+  storageBucket: "yousif-4cc87.appspot.com",
   messagingSenderId: "1088580081605",
   appId: "1:1088580081605:web:aa3983dbd53c84f7c69dac"
 };
@@ -24,18 +24,17 @@ storageBucket: "yousif-4cc87.firebasestorage.app",
 // تشغيل Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-// تسجيل مجهول تلقائي للمستخدم لتمكين عمليات الكتابة من المتصفح (Spark/free)
+
+// تسجيل مجهول تلقائي للمستخدم لتمكين الكتابة من المتصفح (تأكد أن Anonymous مفعل في Console)
 signInAnonymously(auth).catch((err) => {
   console.warn('Anonymous sign-in failed:', err);
 });
 
-// يمكنك المراقبة إن أردت
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    // user.uid و user.isAnonymous متاحة
-    // console.log('Signed in as', user.uid);
+    console.log('Firebase anonymous signed in, uid =', user.uid);
   } else {
-    // Signed out
+    console.log('Firebase auth: signed out');
   }
 });
 
@@ -61,12 +60,8 @@ export async function getShops() {
     const snapshot = await getDocs(collection(db, "shops"));
 
     const shops = [];
-
     snapshot.forEach((doc) => {
-      shops.push({
-        id: doc.id,
-        ...doc.data()
-      });
+      shops.push({ id: doc.id, ...doc.data() });
     });
 
     return shops;
@@ -76,7 +71,7 @@ export async function getShops() {
   }
 }
 
-// ----- وظائف التسجيل (النموذج في index.html) -----
+// حفظ تسجيل من النموذج
 export async function saveRegistration(data) {
   try {
     await addDoc(collection(db, "registrations"), {
@@ -90,17 +85,13 @@ export async function saveRegistration(data) {
   }
 }
 
+// جلب التسجيلات مرتبة بحسب الأحدث
 export async function getRegistrations() {
   try {
-    // جلب التسجيلات مرتبة حسب الأحدث
     const q = query(collection(db, "registrations"), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-
     const regs = [];
-    snapshot.forEach((doc) => {
-      regs.push({ id: doc.id, ...doc.data() });
-    });
-
+    snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
     return regs;
   } catch (err) {
     console.error('Failed to get registrations:', err);
