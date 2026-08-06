@@ -1,4 +1,11 @@
-import { saveShop, getShops, saveRegistration, getRegistrations } from "./firebase.js";
+import {
+  saveShop,
+  getShops,
+  saveRegistration,
+  getRegistrations,
+  saveComment,
+  getComments
+} from "./firebase.js";
 // Ensure DOM is ready and elements exist before attaching listeners
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
@@ -57,7 +64,39 @@ document.addEventListener('DOMContentLoaded', () => {
             <p><strong>العنوان:</strong> ${r.address || ''}</p>
             <p><strong>أقرب نقطة دالة:</strong> ${r.landmark || ''}</p>
             <p><strong>الهاتف:</strong> ${r.phone || ''}</p>
-            <a href="tel:${r.phone || ''}"><button>اتصال</button></a>
+            <a href="tel:${r.phone || ''}">
+                <button>📞 اتصال</button>
+            </a>
+
+            <hr>
+
+            <h4>💬 التعليقات</h4>
+
+            <div class="comments-list" id="comments-${r.id}">
+                جارٍ تحميل التعليقات...
+            </div>
+
+            <input
+                type="text"
+                id="name-${r.id}"
+                placeholder="اسمك">
+
+            <textarea
+                id="comment-${r.id}"
+                placeholder="اكتب تعليقك..."></textarea>
+
+            <select id="rating-${r.id}">
+                <option value="5">⭐⭐⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="1">⭐</option>
+            </select>
+
+            <button class="comment-btn"
+                    onclick="sendComment('${r.id}')">
+                إرسال التعليق
+            </button>
           </div>
         `;
       });
