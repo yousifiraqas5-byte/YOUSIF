@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { saveShop, getShops, saveRegistration } from "./firebase.js";
-=======
 import { saveShop, getShops, saveRegistration, getRegistrations } from "./firebase.js";
->>>>>>> e4bdd0b033d28cd0f111a2912ebb5c78bb63c400
 // Ensure DOM is ready and elements exist before attaching listeners
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
@@ -112,29 +108,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Registration modal and form handling ---
   // فتح نافذة اختيار نوع التسجيل
   window.openModal = function () {
-    document.getElementById("typeModal").classList.add("active");
+    const el = document.getElementById("typeModal");
+    if (el) el.classList.add("active");
   };
 
   // إغلاق نافذة اختيار النوع
   window.closeTypeModal = function () {
-    document.getElementById("typeModal").classList.remove("active");
+    const el = document.getElementById("typeModal");
+    if (el) el.classList.remove("active");
   };
 
   // اختيار بائع أو صيانة
   window.selectRegistrationType = function(type) {
-    document.getElementById("typeModal").classList.remove("active");
+    const typeEl = document.getElementById("typeModal");
+    if (typeEl) typeEl.classList.remove("active");
 
     const regType = document.getElementById("regType");
     if (regType) {
       regType.value = type;
     }
 
-    document.getElementById("registrationModal").classList.add("active");
+    const regModal = document.getElementById("registrationModal");
+    if (regModal) regModal.classList.add("active");
   };
 
   // إغلاق نافذة التسجيل
   window.closeModal = function () {
-    document.getElementById("registrationModal").classList.remove("active");
+    const el = document.getElementById("registrationModal");
+    if (el) el.classList.remove("active");
   };
 
   // حفظ التسجيلات
@@ -159,7 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ok) {
         alert("تم الحفظ");
         registrationForm.reset();
-        document.getElementById("registrationModal").classList.remove("active");
+        const regModal = document.getElementById("registrationModal");
+        if (regModal) regModal.classList.remove("active");
         // بعد الحفظ، نعيد تحميل قائمة المحلات ليظهر للجميع
         loadRegistrations();
       } else {
@@ -169,56 +171,3 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
-// فتح نافذة اختيار نوع التسجيل
-window.openModal = function () {
-  document.getElementById("typeModal").classList.add("active");
-};
-
-// إغلاق نافذة اختيار النوع
-window.closeTypeModal = function () {
-  document.getElementById("typeModal").classList.remove("active");
-};
-
-// اختيار بائع أو صيانة
-window.selectRegistrationType = function(type) {
-  document.getElementById("typeModal").classList.remove("active");
-
-  const regType = document.getElementById("regType");
-  if (regType) {
-    regType.value = type;
-  }
-
-  document.getElementById("registrationModal").classList.add("active");
-};
-
-// إغلاق نافذة التسجيل
-window.closeModal = function () {
-  document.getElementById("registrationModal").classList.remove("active");
-};
-// حفظ التسجيلات
-const registrationForm = document.getElementById("registrationForm");
-
-if (registrationForm) {
-  registrationForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const data = {
-      name: document.getElementById("name")?.value || "",
-      phone: document.getElementById("phone")?.value || "",
-      address: document.getElementById("address")?.value || "",
-      region: document.getElementById("region")?.value || "",
-      landmark: document.getElementById("landmark")?.value || "",
-      regType: document.getElementById("regType")?.value || "",
-      specialty: document.getElementById("specialty")?.value || ""
-    };
-
-    const ok = await saveRegistration(data);
-
-    if (ok) {
-      alert("تم الحفظ");
-      registrationForm.reset();
-    } else {
-      alert("حدث خطأ أثناء الحفظ");
-    }
-  });
-}
