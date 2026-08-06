@@ -93,9 +93,11 @@ export async function getRegistrations() {
       const q = query(collection(db, "registrations"), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       const regs = [];
-      snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
-      console.log('getRegistrations: fetched', regs.length, 'items (ordered)');
-      return regs;
+snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
+
+console.log("Registrations:", regs);
+
+return regs;
     } catch (innerErr) {
       // قد يفشل الأمر إذا لم يوجد حقل createdAt في المستندات بعد، فالتراجع إلى جلبٍ بسيط
       console.warn('Ordered query failed, falling back to simple getDocs:', innerErr);
