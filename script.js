@@ -99,6 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </div>
         `;
+
+        // Load comments for this registration right after rendering its card
+        loadComments(r.id);
       });
     } catch (err) {
       console.error('loadRegistrations error:', err);
@@ -207,6 +210,67 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("حدث خطأ أثناء الحفظ");
       }
     });
+  }
+
+  // إرسال تعليق
+  window.sendComment = async function (shopId) {
+
+    const name = document.getElementById(`name-${shopId}`).value.trim();
+    const comment = document.getElementById(`comment-${shopId}`).value.trim();
+    const rating = parseInt(document.getElementById(`rating-${shopId}`).value);
+
+    if (!comment) {
+      alert("اكتب تعليقاً أولاً");
+      return;
+    }
+
+    const ok = await saveComment({
+      shopId,
+      name: name || "مستخدم",
+      comment,
+      rating
+    });
+
+    if (!ok) {
+      alert("حدث خطأ أثناء الحفظ");
+      return;
+    }
+
+    document.getElementById(`comment-${shopId}`).value = "";
+    document.getElementById(`name-${shopId}`).value = "";
+
+    loadComments(shopId);
+  };
+
+  // تحميل التعليقات
+  async function loadComments(shopId) {
+
+    const box = document.getElementById(`comments-${shopId}`);
+
+    if (!box) return;
+
+    const comments = await getComments(shopId);
+
+    if (!Array.isArray(comments) || comments.length === 0) {
+      box.innerHTML = "لا توجد تعليقات";
+      return;
+    }
+
+    box.innerHTML = "";
+
+    comments.forEach(c => {
+
+      box.innerHTML += `
+      <div class="comment-card">
+        <strong>${c.name}</strong><br>
+        <span>${"⭐".repeat(c.rating)}</span>
+        <p>${c.comment}</p>
+        <hr>
+      </div>
+    `;
+
+    });
+
   }
 
 });
