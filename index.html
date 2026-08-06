@@ -359,9 +359,19 @@
   </div>
 
   <div class="container">
+<<<<<<< HEAD
 </div>
+=======
+    <div id="registrationsList" class="registrations-container">
+      <!-- هنا ستُعرض قائمة المحلات تلقائياً -->
+    </div>
+  </div>
+>>>>>>> e4bdd0b033d28cd0f111a2912ebb5c78bb63c400
 
 <script type="module" src="script.js"></script>
 </body>
 </html>
+<<<<<<< HEAD
 We need to update index.html — but earlier create_or_update_file failed due to missing sha. We should include correct sha from getfile: BlobSha: ab17de14ac487d6e44bc1ec2e43289b9e7bbf896. Use that in create_or_update_file call. The content we plan to write should include window.* lines. The file is large; but we can update by patching section. However create_or_update_file requires full content. We should reuse latest file content and insert window lines after closeModal function. In the snippet above, we saw closeModal defined at lines ~402-403. So add window.* after that. But in the content we are about to write, ensure it's the final full HTML — that's long. But we can call create_or_update_file with content full; must include sha param equal to current blob SHA. Let's prepare to send create_or_update_file with same content as currently but with window.* addition. We must ensure the content includes the full HTML ending etc. The previous attempt had many characters and failed due to not including sha; now include sha param. We'll call functions.create_or_update_file with the required JSON. Let's craft content: We can modify by taking previous full content from getfile and inserting window lines. But constructing full content manually is heavy; but it's required. However earlier assistant attempted similar and succeeded for index.html modifications; we can do it again but include sha. The last create_or_update_file succeeded for index.html earlier; the current file is as in getfile. Let's call create_or_update_file with same content as in previous commit earlier where window.* had been added? Wait previous successful commit had message 
+=======
+>>>>>>> e4bdd0b033d28cd0f111a2912ebb5c78bb63c400

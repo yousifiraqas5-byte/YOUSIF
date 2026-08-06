@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { saveShop, getShops, saveRegistration } from "./firebase.js";
+=======
+import { saveShop, getShops, saveRegistration, getRegistrations } from "./firebase.js";
+>>>>>>> e4bdd0b033d28cd0f111a2912ebb5c78bb63c400
 // Ensure DOM is ready and elements exist before attaching listeners
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
@@ -33,6 +37,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Load and render registrations so everyone visiting the page sees the registered shops
+  const registrationsContainer = document.getElementById('registrationsList');
+  async function loadRegistrations() {
+    if (!registrationsContainer) return;
+    registrationsContainer.innerHTML = '<div class="loading">جارٍ تحميل المحلات...</div>';
+    try {
+      const regs = await getRegistrations();
+      if (!Array.isArray(regs) || regs.length === 0) {
+        registrationsContainer.innerHTML = '<div class="no-registrations">لا توجد محلات مسجلة حتى الآن</div>';
+        return;
+      }
+
+      registrationsContainer.innerHTML = '';
+      regs.forEach(r => {
+        const typeLabel = r.regType === 'seller' ? 'بائع' : (r.regType === 'maintenance' ? 'صيانة' : r.regType || '');
+        registrationsContainer.innerHTML += `
+          <div class="registration-card">
+            <h3>${r.name || r.shopName || 'بدون اسم'}</h3>
+            <p><strong>النوع:</strong> ${typeLabel}</p>
+            <p><strong>الاختصاص:</strong> ${r.specialty || ''}</p>
+            <p><strong>المنطقة/الحي:</strong> ${r.region || ''}</p>
+            <p><strong>العنوان:</strong> ${r.address || ''}</p>
+            <p><strong>أقرب نقطة دالة:</strong> ${r.landmark || ''}</p>
+            <p><strong>الهاتف:</strong> ${r.phone || ''}</p>
+            <a href="tel:${r.phone || ''}"><button>اتصال</button></a>
+          </div>
+        `;
+      });
+    } catch (err) {
+      console.error('loadRegistrations error:', err);
+      registrationsContainer.innerHTML = '<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>';
+    }
+  }
+
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -53,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert("تم حفظ المحل");
           form.reset();
           loadShops();
+          loadRegistrations(); // reload registrations view if shops are also shown there
         } else {
           alert('حدث خطأ أثناء حفظ المحل');
         }
@@ -67,6 +106,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load shops if list exists
   loadShops();
+  // Load registrations so all visitors see them
+  loadRegistrations();
+
+  // --- Registration modal and form handling ---
+  // فتح نافذة اختيار نوع التسجيل
+  window.openModal = function () {
+    document.getElementById("typeModal").classList.add("active");
+  };
+
+  // إغلاق نافذة اختيار النوع
+  window.closeTypeModal = function () {
+    document.getElementById("typeModal").classList.remove("active");
+  };
+
+  // اختيار بائع أو صيانة
+  window.selectRegistrationType = function(type) {
+    document.getElementById("typeModal").classList.remove("active");
+
+    const regType = document.getElementById("regType");
+    if (regType) {
+      regType.value = type;
+    }
+
+    document.getElementById("registrationModal").classList.add("active");
+  };
+
+  // إغلاق نافذة التسجيل
+  window.closeModal = function () {
+    document.getElementById("registrationModal").classList.remove("active");
+  };
+
+  // حفظ التسجيلات
+  const registrationForm = document.getElementById("registrationForm");
+
+  if (registrationForm) {
+    registrationForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const data = {
+        name: document.getElementById("name")?.value || "",
+        phone: document.getElementById("phone")?.value || "",
+        address: document.getElementById("address")?.value || "",
+        region: document.getElementById("region")?.value || "",
+        landmark: document.getElementById("landmark")?.value || "",
+        regType: document.getElementById("regType")?.value || "",
+        specialty: document.getElementById("specialty")?.value || ""
+      };
+
+      const ok = await saveRegistration(data);
+
+      if (ok) {
+        alert("تم الحفظ");
+        registrationForm.reset();
+        document.getElementById("registrationModal").classList.remove("active");
+        // بعد الحفظ، نعيد تحميل قائمة المحلات ليظهر للجميع
+        loadRegistrations();
+      } else {
+        alert("حدث خطأ أثناء الحفظ");
+      }
+    });
+  }
+
 });
 // فتح نافذة اختيار نوع التسجيل
 window.openModal = function () {
