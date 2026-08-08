@@ -262,16 +262,147 @@
 </head>
 
 <body>
+<div class="container">
+  <!-- الواجهة الرئيسية الجديدة -->
 
-  <div class="flag-wrapper">
-    <img src="images/iraq.png" class="iraq-flag" alt="علم العراق" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/f/f6/Flag_of_Iraq.svg'">
-    <div class="flag-overlay">مهندس يوسف</div>
+<header class="app-header">
+
+  <div class="app-logo">
+    <h1>دليل المحلات</h1>
+    <p>اعثر على الخدمة التي تحتاجها بسهولة</p>
   </div>
 
-  <!-- زر التسجيل العائم -->
-  <button class="floating-btn" onclick="openModal()">
-    📋 التسجيل
+  <button class="profile-btn">
+    👤
   </button>
+
+</header>
+
+
+<!-- مربع البحث -->
+
+<div class="search-box">
+
+  <span class="search-icon">🔍</span>
+
+  <input
+    type="search"
+    id="searchInput"
+    placeholder="ابحث عن محل أو خدمة..."
+  >
+
+</div>
+
+
+<!-- البطاقة الرئيسية -->
+
+<div class="hero-card">
+
+  <h2>خدمات متنوعة بجودة عالية</h2>
+
+  <p>
+    ابحث عن أفضل مقدمي خدمات الصيانة
+    والمحلات والبائعين بالقرب منك.
+  </p>
+
+  <button class="hero-btn" onclick="openModal()">
+    📋 سجل خدمتك الآن
+  </button>
+
+</div>
+
+
+<!-- الأقسام -->
+
+<h2 class="section-title">الأقسام</h2>
+
+<div class="category-grid">
+
+  <!-- الصيانة -->
+
+  <div
+    class="category-card"
+    onclick="openCategory('maintenance')"
+  >
+
+    <div class="category-icon maintenance-icon">
+      🔧
+    </div>
+
+    <h3>الصيانة</h3>
+
+    <p>
+      خدمات الصيانة والإصلاح
+    </p>
+
+  </div>
+
+
+  <!-- المبيعات -->
+
+  <div
+    class="category-card"
+    onclick="openCategory('seller')"
+  >
+
+    <div class="category-icon sales-icon">
+      🛒
+    </div>
+
+    <h3>المبيعات</h3>
+
+    <p>
+      المحلات والبائعين
+    </p>
+
+  </div>
+
+</div>
+
+
+<!-- التنقل السفلي -->
+
+<nav class="bottom-nav">
+
+  <button class="nav-item active">
+
+    <span class="nav-icon">🏠</span>
+
+    الرئيسية
+
+  </button>
+
+
+  <button class="nav-item">
+
+    <span class="nav-icon">🔧</span>
+
+    الصيانة
+
+  </button>
+
+
+  <button class="nav-item">
+
+    <span class="nav-icon">🛒</span>
+
+    المبيعات
+
+  </button>
+
+
+  <button
+    class="nav-item"
+    onclick="openModal()"
+  >
+
+    <span class="nav-icon">📋</span>
+
+    التسجيل
+
+  </button>
+
+</nav>
 
   <!-- نافذة اختيار نوع التسجيل (تظهر أولاً) -->
   <div class="modal-overlay type-modal" id="typeModal">

@@ -151,3 +151,250 @@ color:#0d6efd;
     padding:15px;
     margin:15px 0;
 }
+/* =========================
+   واجهة دليل المحلات الجديدة
+========================= */
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.app-logo {
+    text-align: right;
+}
+
+.app-logo h1 {
+    font-size: 24px;
+    margin: 0;
+    color: #222;
+}
+
+.app-logo p {
+    font-size: 13px;
+    color: #777;
+    margin: 4px 0 0;
+}
+
+.profile-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    font-size: 21px;
+}
+
+/* البحث */
+
+.search-box {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.search-box input {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 16px;
+    background: #f5f5f7;
+    padding: 0 48px 0 15px;
+    font-size: 15px;
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    right: 17px;
+    top: 14px;
+    font-size: 20px;
+}
+
+/* البطاقة الرئيسية */
+
+.hero-card {
+    background: linear-gradient(135deg, #fff0e8, #ffe2d2);
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 25px;
+    text-align: right;
+    overflow: hidden;
+}
+
+.hero-card h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: #222;
+}
+
+.hero-card p {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 15px;
+}
+
+.hero-btn {
+    width: auto;
+    display: inline-block;
+    background: #ff6b00;
+    color: white;
+    padding: 11px 20px;
+    border-radius: 13px;
+    font-size: 14px;
+}
+
+/* الأقسام */
+
+.section-title {
+    text-align: right;
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.category-card {
+    background: white;
+    border-radius: 20px;
+    padding: 22px 15px;
+    border: 1px solid #eee;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.category-card:hover {
+    transform: translateY(-3px);
+}
+
+.category-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto auto 12px;
+    font-size: 28px;
+}
+
+.maintenance-icon {
+    background: #fff0e8;
+}
+
+.sales-icon {
+    background: #eaf4ff;
+}
+
+.category-card h3 {
+    margin: 0 0 5px;
+    font-size: 17px;
+}
+
+.category-card p {
+    margin: 0;
+    font-size: 12px;
+    color: #888;
+}
+
+/* شريط التنقل السفلي */
+
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 30px;
+    padding: 12px 5px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 -3px 15px rgba(0,0,0,0.06);
+}
+
+.nav-item {
+    border: none;
+    background: transparent;
+    color: #777;
+    font-size: 12px;
+    padding: 7px;
+    width: auto;
+}
+
+.nav-item.active {
+    color: #ff6b00;
+}
+
+.nav-icon {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 3px;
+}
+/* =========================
+   ضبط شاشة التطبيق
+========================= */
+
+body {
+    padding-top: 0 !important;
+    background: #f2f2f7;
+}
+
+.container {
+    width: 390px !important;
+    min-height: 844px !important;
+    margin: 20px auto !important;
+    padding: 25px !important;
+    border-radius: 40px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important;
+    text-align: center;
+    overflow: hidden;
+}
+
+/* إخفاء قائمة التسجيلات القديمة مؤقتاً
+   حتى نبني صفحة الأقسام الجديدة */
+
+#registrationsList {
+    display: none;
+}
+
+/* ترتيب الواجهة */
+
+.app-header {
+    margin-top: 5px;
+}
+
+.search-box {
+    margin-top: 15px;
+}
+
+.hero-card {
+    margin-top: 18px;
+}
+
+.category-grid {
+    margin-top: 10px;
+}
+
+/* على شاشة الكمبيوتر نخلي التطبيق بحجم هاتف */
+
+@media (min-width: 601px) {
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+    }
+
+    .container {
+        margin-top: 30px !important;
+    }
+
+}
