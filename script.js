@@ -144,6 +144,131 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load shops if list exists
   loadShops();
+  // ================================
+// فلترة التسجيلات حسب القسم والتخصص
+// ================================
+
+window.showCategoryRegistrations = async function(type, specialty) {
+
+  const container = document.getElementById("registrationsList");
+
+  if (!container) return;
+
+  container.style.display = "block";
+  container.innerHTML = "جارٍ تحميل النتائج...";
+
+  try {
+
+    const regs = await getRegistrations();
+
+    const filtered = regs.filter(r => {
+
+      const sameType = r.regType === type;
+
+      const sameSpecialty =
+        !specialty ||
+        (r.specialty || "").trim() === specialty.trim();
+
+      return sameType && sameSpecialty;
+
+    });
+
+    if (filtered.length === 0) {
+
+      container.innerHTML = `
+        <div class="no-registrations">
+          لا توجد نتائج مسجلة في هذه الفئة حتى الآن
+        </div>
+      `;
+
+      return;
+    }
+
+    container.innerHTML = "";
+
+    filtered.forEach(r => {
+
+      const typeLabel =
+        r.regType === "seller"
+          ? "مبيعات"
+          : "صيانة";
+
+      container.innerHTML += `
+
+        <div class="registration-card">
+
+          <h3>
+            ${r.name || r.shopName || "بدون اسم"}
+          </h3>
+
+          <p>
+            <strong>النوع:</strong>
+            ${typeLabel}
+          </p>
+
+          <p>
+            <strong>الاختصاص:</strong>
+            ${r.specialty || ""}
+          </p>
+
+          <p>
+            <strong>المنطقة:</strong>
+            ${r.region || ""}
+          </p>
+
+          <p>
+            <strong>العنوان:</strong>
+            ${r.address || ""}
+          </p>
+
+          <p>
+            <strong>الهاتف:</strong>
+            ${r.phone || ""}
+          </p>
+
+          <a href="tel:${r.phone || ""}">
+            <button>📞 اتصال</button>
+          </a>
+
+          <hr>
+
+          <h4>💬 التعليقات</h4>
+
+          <div
+            class="comments-list"
+            id="comments-${r.id}">
+            جارٍ تحميل التعليقات...
+          </div>
+
+        </div>
+
+      `;
+
+      loadComments(r.id);
+
+    });
+
+    container.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  } catch (err) {
+
+    console.error(
+      "showCategoryRegistrations error:",
+      err
+    );
+
+    container.innerHTML = `
+      <div class="no-registrations">
+        حدث خطأ أثناء جلب النتائج
+      </div>
+    `;
+
+  }
+
+};
   // Load registrations so all visitors see them
   loadRegistrations();
 
@@ -273,4 +398,108 @@ document.addEventListener('DOMContentLoaded', () => {
 
   }
 
+
+// ================================
+// فتح قسم الصيانة أو المبيعات
+// ================================
+
+window.openCategory = function (type) {
+
+  const title = document.querySelector(".section-title");
+  const grid = document.querySelector(".category-grid");
+
+  if (!title || !grid) {
+    console.error("category elements not found");
+    return;
+  }
+
+  if (type === "maintenance") {
+
+    title.textContent = "🔧 خدمات الصيانة";
+
+    grid.innerHTML = `
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'حداد')">
+        <div class="category-icon maintenance-icon">🔨</div>
+        <h3>حداد</h3>
+        <p>أعمال الحدادة</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'فيتر')">
+        <div class="category-icon maintenance-icon">🔧</div>
+        <h3>فيتر</h3>
+        <p>صيانة السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'كهربائي')">
+        <div class="category-icon maintenance-icon">⚡</div>
+        <h3>كهربائي</h3>
+        <p>الأعمال الكهربائية</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'تبريد وتكييف')">
+        <div class="category-icon maintenance-icon">❄️</div>
+        <h3>تبريد وتكييف</h3>
+        <p>صيانة أجهزة التبريد</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'سباك')">
+        <div class="category-icon maintenance-icon">🚰</div>
+        <h3>سباك</h3>
+        <p>أعمال السباكة</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'تنظيف')">
+        <div class="category-icon maintenance-icon">🧹</div>
+        <h3>تنظيف</h3>
+        <p>خدمات التنظيف</p>
+      </div>
+
+    `;
+
+  } else if (type === "seller") {
+
+    title.textContent = "🛒 فئات المبيعات";
+
+    grid.innerHTML = `
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'سيارات')">
+        <div class="category-icon sales-icon">🚗</div>
+        <h3>سيارات</h3>
+        <p>بيع وشراء السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'قطع غيار')">
+        <div class="category-icon sales-icon">🔩</div>
+        <h3>قطع غيار</h3>
+        <p>قطع غيار السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'إطارات')">
+        <div class="category-icon sales-icon">🛞</div>
+        <h3>إطارات</h3>
+        <p>إطارات وعجلات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'بطاريات')">
+        <div class="category-icon sales-icon">🔋</div>
+        <h3>بطاريات</h3>
+        <p>بطاريات السيارات</p>
+      </div>
+
+    `;
+
+  }
+
+};
 });
