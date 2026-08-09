@@ -398,3 +398,23 @@ body {
     }
 
 }
+/* إصلاح زر X الخاص بالنوافذ */
+.close-btn {
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    color: #666 !important;
+    border: none !important;
+    font-size: 28px !important;
+    line-height: 1 !important;
+    transform: none !important;
+}
+
+.close-btn:hover {
+    width: auto !important;
+    background: transparent !important;
+    color: #000 !important;
+    transform: none !important;
+}
