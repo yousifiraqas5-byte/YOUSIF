@@ -564,10 +564,6 @@ const ok = await saveRegistration(data);
     const comment = document.getElementById(`comment-${shopId}`).value.trim();
     const rating = parseInt(document.getElementById(`rating-${shopId}`).value);
 
-    if (!comment) {
-      alert("اكتب تعليقاً أولاً");
-      return;
-    }
 
     const ok = await saveComment({
       shopId,
@@ -575,11 +571,6 @@ const ok = await saveRegistration(data);
       comment,
       rating
     });
-
-    if (!ok) {
-      alert("حدث خطأ أثناء الحفظ");
-      return;
-    }
 
     document.getElementById(`comment-${shopId}`).value = "";
     document.getElementById(`name-${shopId}`).value = "";
