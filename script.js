@@ -1,442 +1,19 @@
+// ======================================================
+// دليل المحلات - script.js
+// الجزء 1/3: البيانات + السيارات + الدوال الأساسية
+// ======================================================
+
 import {
-  saveShop,
-  getShops,
   saveRegistration,
   getRegistrations,
   saveComment,
   getComments
 } from "./firebase.js";
-// Ensure DOM is ready and elements exist before attaching listeners
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById("shopForm");
-  const list = document.getElementById("shopsList");
 
-  async function loadShops() {
-    if (!list) return;
-    list.innerHTML = "";
-    try {
-      const shops = await getShops();
-      if (!Array.isArray(shops) || shops.length === 0) {
-        list.innerHTML = '<div class="no-registrations">لا توجد محلات حتى الآن</div>';
-        return;
-      }
-      shops.forEach(shop => {
-        list.innerHTML += `
-        <div class="shop-card">
-            <h3>${shop.shopName || ''}</h3>
-            <p><b>الاختصاص:</b> ${shop.speciality || ''}</p>
-            <p><b>المحافظة:</b> ${shop.city || ''}</p>
-            <p><b>المنطقة:</b> ${shop.area || ''}</p>
-            <p><b>الهاتف:</b> ${shop.phone || ''}</p>
-            <a href="tel:${shop.phone || ''}">
-                <button>اتصال</button>
-            </a>
-        </div>
-        `;
-      });
-    } catch (err) {
-      console.error('loadShops error:', err);
-      if (list) list.innerHTML = '<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>';
-    }
-  }
+// ======================================================
+// التخصصات
+// ======================================================
 
-  // Load and render registrations so everyone visiting the page sees the registered shops
-  const registrationsContainer = document.getElementById('registrationsList');
-    async function loadRegistrations() {
-  if (!registrationsContainer) return;
-
-  registrationsContainer.innerHTML = "جارٍ تحميل المحلات...";
-
-  try {
-    const regs = await getRegistrations();
-
-    if (!Array.isArray(regs) || regs.length === 0) {
-      registrationsContainer.innerHTML =
-        "لا توجد محلات مسجلة حتى الآن";
-      return;
-    }
-
-    registrationsContainer.innerHTML = "";
-
-    regs.forEach(r => {
-      const typeLabel =
-        r.regType === "seller"
-          ? "🛒 بيع"
-          : r.regType === "maintenance"
-          ? "🔧 صيانة"
-          : r.regType === "both"
-          ? "🔧🛒 صيانة + بيع"
-          : r.regType || "";
-
-      registrationsContainer.innerHTML += `
-        <div class="registration-card">
-
-          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
-
-          <p>
-            <strong>الفئة:</strong>
-            ${typeLabel}
-          </p>
-
-          <p>
-            <strong>التخصص:</strong>
-            ${r.specialty || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>المحافظة:</strong>
-            ${r.city || ""}
-          </p>
-
-          <p>
-            <strong>المنطقة:</strong>
-            ${r.region || ""}
-          </p>
-
-          <p>
-            <strong>الهاتف:</strong>
-            ${r.phone || ""}
-          </p>
-
-          <p>
-            <strong>أيام الدوام:</strong>
-            ${r.workDays || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>أوقات الدوام:</strong>
-            ${r.workHours || "غير محدد"}
-          </p>
-
-          ${
-            r.mapLocation
-              ? `
-                <p>
-                  <strong>🗺️ الموقع:</strong>
-                  <a href="${r.mapLocation}" target="_blank">
-                    فتح الموقع على الخريطة 📍
-                  </a>
-                </p>
-              `
-              : ""
-          }
-
-          ${
-            r.description
-              ? `
-                <p>
-                  <strong>📝 الوصف:</strong>
-                  ${r.description}
-                </p>
-              `
-              : ""
-          }
-
-          <a href="tel:${r.phone || ""}">
-            <button>📞 اتصال</button>
-          </a>
-
-          <hr>
-
-          <h4>💬 التقييمات والتعليقات</h4>
-
-          <div
-            class="comments-list"
-            id="comments-${r.id}">
-            جارٍ تحميل التعليقات...
-          </div>
-
-          <input
-            type="text"
-            id="name-${r.id}"
-            placeholder="اسمك">
-
-          <textarea
-            id="comment-${r.id}"
-            placeholder="اكتب تعليقك..."></textarea>
-
-          <select id="rating-${r.id}">
-            <option value="5">⭐⭐⭐⭐⭐</option>
-            <option value="4">⭐⭐⭐⭐</option>
-            <option value="3">⭐⭐⭐</option>
-            <option value="2">⭐⭐</option>
-            <option value="1">⭐</option>
-          </select>
-
-          <button
-            class="comment-btn"
-            onclick="sendComment('${r.id}')">
-            إرسال التقييم
-          </button>
-
-        </div>
-      `;
-
-      loadComments(r.id);
-    });
-
-  } catch (err) {
-    console.error("loadRegistrations error:", err);
-
-    registrationsContainer.innerHTML = `
-      <div class="no-registrations">
-        حدث خطأ أثناء جلب المحلات
-      </div>
-    `;
-  }
-}
-  if (form) {
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const data = {
-        shopName: document.getElementById("shopName")?.value || '',
-        speciality: document.getElementById("speciality")?.value || '',
-        city: document.getElementById("city")?.value || '',
-        area: document.getElementById("area")?.value || '',
-        phone: document.getElementById("phone")?.value || ''
-      };
-
-      try {
-        console.log('Submitting shop:', data);
-        const ok = await saveShop(data);
-        console.log('saveShop result:', ok);
-        if (ok) {
-          alert("تم حفظ المحل");
-          form.reset();
-          loadShops();
-          loadRegistrations(); // reload registrations view if shops are also shown there
-        } else {
-          alert('حدث خطأ أثناء حفظ المحل');
-        }
-      } catch (err) {
-        console.error('Error saving shop:', err);
-        alert('حدث خطأ غير متوقع');
-      }
-    });
-  } else {
-    console.log('shopForm not found — skipping shop form handlers');
-  }
-
-  // Load shops if list exists
-  loadShops();
-  // ================================
-// فلترة التسجيلات حسب القسم والتخصص
-// ================================
-
-window.showCategoryRegistrations = async function(type, specialty) {
-
-  const container = document.getElementById("registrationsList");
-
-  if (!container) return;
-
-  container.style.display = "block";
-  container.innerHTML = "جارٍ تحميل النتائج...";
-
-  try {
-
-    const regs = await getRegistrations();
-
-    const filtered = regs.filter(r => {
-
-      const sameType =
-        r.regType === type ||
-        r.regType === "both";
-
-      const sameSpecialty =
-        !specialty ||
-        (r.specialty || "").trim() === specialty.trim();
-
-      return sameType && sameSpecialty;
-    });
-
-    if (filtered.length === 0) {
-
-      container.innerHTML = `
-        <div class="no-registrations">
-          لا توجد نتائج مسجلة في هذه الفئة حتى الآن
-        </div>
-      `;
-
-      return;
-    }
-
-    container.innerHTML = "";
-
-    filtered.forEach(r => {
-
-      const typeLabel =
-        r.regType === "seller"
-          ? "🛒 بيع"
-          : r.regType === "maintenance"
-          ? "🔧 صيانة"
-          : r.regType === "both"
-          ? "🔧🛒 صيانة + بيع"
-          : r.regType || "";
-
-      container.innerHTML += `
-
-        <div class="registration-card">
-
-          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
-
-          <p>
-            <strong>الفئة:</strong>
-            ${typeLabel}
-          </p>
-
-          <p>
-            <strong>التخصص:</strong>
-            ${r.specialty || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>المحافظة:</strong>
-            ${r.city || ""}
-          </p>
-
-          <p>
-            <strong>المنطقة:</strong>
-            ${r.region || ""}
-          </p>
-
-          <p>
-            <strong>الهاتف:</strong>
-            ${r.phone || ""}
-          </p>
-
-          <p>
-            <strong>أيام الدوام:</strong>
-            ${r.workDays || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>أوقات الدوام:</strong>
-            ${r.workHours || "غير محدد"}
-          </p>
-
-          ${
-            r.mapLocation
-              ? `
-                <p>
-                  <strong>🗺️ الموقع:</strong>
-                  <a href="${r.mapLocation}" target="_blank">
-                    فتح الموقع على الخريطة 📍
-                  </a>
-                </p>
-              `
-              : ""
-          }
-
-          ${
-            r.description
-              ? `
-                <p>
-                  <strong>📝 الوصف:</strong>
-                  ${r.description}
-                </p>
-              `
-              : ""
-          }
-
-          <a href="tel:${r.phone || ""}">
-            <button>📞 اتصال</button>
-          </a>
-
-          <hr>
-
-          <h4>💬 التقييمات والتعليقات</h4>
-
-          <div
-            class="comments-list"
-            id="comments-${r.id}">
-            جارٍ تحميل التعليقات...
-          </div>
-
-          <input
-            type="text"
-            id="name-${r.id}"
-            placeholder="اسمك">
-
-          <textarea
-            id="comment-${r.id}"
-            placeholder="اكتب تعليقك..."></textarea>
-
-          <select id="rating-${r.id}">
-            <option value="5">⭐⭐⭐⭐⭐</option>
-            <option value="4">⭐⭐⭐⭐</option>
-            <option value="3">⭐⭐⭐</option>
-            <option value="2">⭐⭐</option>
-            <option value="1">⭐</option>
-          </select>
-
-          <button
-            class="comment-btn"
-            onclick="sendComment('${r.id}')">
-            إرسال التقييم
-          </button>
-
-        </div>
-
-      `;
-
-      loadComments(r.id);
-
-    });
-
-    container.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-  } catch (err) {
-
-    console.error(
-      "showCategoryRegistrations error:",
-      err
-    );
-
-    container.innerHTML = `
-      <div class="no-registrations">
-        حدث خطأ أثناء جلب النتائج
-      </div>
-    `;
-  }
-
-};
-
-  // Load registrations so all visitors see them
-  loadRegistrations();
-
-  // --- Registration modal and form handling ---
-  // فتح نافذة اختيار نوع التسجيل
-  window.openModal = function () {
-    const el = document.getElementById("typeModal");
-    if (el) el.classList.add("active");
-  };
-
-  // إغلاق نافذة اختيار النوع
-  window.closeTypeModal = function () {
-    const el = document.getElementById("typeModal");
-    if (el) el.classList.remove("active");
-  };
-
-  // اختيار بائع أو صيانة
-  window.selectRegistrationType = function(type) {
-    const typeEl = document.getElementById("typeModal");
-    if (typeEl) typeEl.classList.remove("active");
-
-    const regType = document.getElementById("regType");
-    if (regType) {
-      regType.value = type;
-    }
-
-    const regModal = document.getElementById("registrationModal");
-    if (regModal) regModal.classList.add("active");
-  };
-// ================================
-// قائمة تخصصات الصيانة والبيع
-// ================================
 const maintenanceSpecialties = [
   "فني تبريد وتكييف",
   "كهربائي سيارات",
@@ -460,407 +37,2248 @@ const maintenanceSpecialties = [
   "تلميع وحماية"
 ];
 
+const sellerSpecialties = [
+  "قطع غيار أصلية",
+  "قطع غيار تجارية",
+  "إكسسوارات",
+  "زيوت",
+  "بطاريات",
+  "إطارات",
+  "جنوط",
+  "إنارة",
+  "أجهزة فحص",
+  "مكيفات سيارات"
+];
 
-const regTypeSelect = document.getElementById("regType");
-const specialtyGroup = document.getElementById("specialtyGroup");
-const specialtySelect = document.getElementById("specialty");
+// ======================================================
+// بيانات السيارات
+// ======================================================
 
-if (regTypeSelect && specialtyGroup && specialtySelect) {
+const vehicleData = {
 
-  regTypeSelect.addEventListener("change", function () {
+  "كوري": {
+    "كيا": [
+      "سيراتو",
+      "سبورتاج",
+      "سورينتو",
+      "ريو",
+      "بيكانتو",
+      "K5",
+      "كارنفال"
+    ],
+    "هيونداي": [
+      "النترا",
+      "سوناتا",
+      "توسان",
+      "سانتافي",
+      "أكسنت",
+      "كونا",
+      "باليسيد",
+      "كريتا"
+    ],
+    "جينيسس": [
+      "G70",
+      "G80",
+      "G90",
+      "GV70",
+      "GV80"
+    ],
+    "دايو": [
+      "لانوس",
+      "نوبيرا",
+      "ليجانزا"
+    ]
+  },
 
-    const type = this.value;
+  "أمريكي": {
+    "شيفروليه": [
+      "ماليبو",
+      "إمبالا",
+      "كروز",
+      "تاهو",
+      "سوبربان",
+      "كابتيفا",
+      "ترافيرس",
+      "سيلفرادو",
+      "كامارو"
+    ],
+    "دودج": [
+      "تشارجر",
+      "تشالنجر",
+      "دورانجو",
+      "رام"
+    ],
+    "GMC": [
+      "يوكون",
+      "سييرا",
+      "أكاديا",
+      "تيرين"
+    ],
+    "فورد": [
+      "إكسبلورر",
+      "إكسبيديشن",
+      "إيدج",
+      "إسكيب",
+      "موستانج",
+      "F-150",
+      "رابتور"
+    ],
+    "كرايسلر": [
+      "300",
+      "باسيفيكا",
+      "فوياجر"
+    ],
+    "جيب": [
+      "جراند شيروكي",
+      "رانجلر",
+      "كومباس",
+      "جلادياتور",
+      "شيروكي"
+    ],
+    "كاديلاك": [
+      "إسكاليد",
+      "XT4",
+      "XT5",
+      "XT6",
+      "CT5"
+    ],
+    "لينكولن": [
+      "نافيجيتور",
+      "أفياتور",
+      "نوتيلوس"
+    ]
+  },
 
-    specialtySelect.innerHTML =
-      '<option value="">اختر التخصص</option>';
+  "ياباني": {
+    "تويوتا": [
+      "كامري",
+      "كورولا",
+      "راف 4",
+      "لاندكروزر",
+      "برادو",
+      "هايلاندر",
+      "يارس",
+      "أفالون",
+      "فورتشنر",
+      "هايلوكس"
+    ],
+    "نيسان": [
+      "ألتيما",
+      "سنترا",
+      "باترول",
+      "إكس تريل",
+      "ماكسيما",
+      "قشقاي",
+      "نافارا"
+    ],
+    "هوندا": [
+      "أكورد",
+      "سيفيك",
+      "CR-V",
+      "HR-V",
+      "بايلوت"
+    ],
+    "مازدا": [
+      "مازدا 3",
+      "مازدا 6",
+      "CX-5",
+      "CX-9",
+      "CX-30"
+    ],
+    "ميتسوبيشي": [
+      "لانسر",
+      "أوتلاندر",
+      "باجيرو",
+      "ASX",
+      "L200"
+    ],
+    "سوبارو": [
+      "فورستر",
+      "أوتباك",
+      "إمبريزا"
+    ],
+    "سوزوكي": [
+      "سويفت",
+      "فيتارا",
+      "جيمني",
+      "إرتيجا"
+    ],
+    "إنفينيتي": [
+      "Q50",
+      "QX50",
+      "QX60",
+      "QX80"
+    ]
+  },
 
-    if (type === "maintenance") {
+  "صيني": {
+    "MG": [
+      "MG 5",
+      "MG 6",
+      "ZS",
+      "HS",
+      "RX5"
+    ],
+    "BYD": [
+      "F3",
+      "Song Plus",
+      "Qin",
+      "Han",
+      "Atto 3"
+    ],
+    "Chery": [
+      "Arrizo 5",
+      "Arrizo 6",
+      "Tiggo 4",
+      "Tiggo 7",
+      "Tiggo 8"
+    ],
+    "Geely": [
+      "Emgrand",
+      "Coolray",
+      "Azkarra"
+    ],
+    "Haval": [
+      "H6",
+      "H9",
+      "Jolion"
+    ],
+    "Changan": [
+      "Alsvin",
+      "CS35",
+      "CS55",
+      "CS75"
+    ],
+    "GAC": [
+      "GS3",
+      "GS4",
+      "GS8",
+      "EMPOW"
+    ]
+  },
 
-      maintenanceSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
+  "فرنسي": {
+    "بيجو": [
+      "208",
+      "301",
+      "308",
+      "508",
+      "2008",
+      "3008",
+      "5008"
+    ],
+    "رينو": [
+      "ميغان",
+      "لوجان",
+      "داستر",
+      "كوليوس",
+      "كابتشر"
+    ],
+    "سيتروين": [
+      "C3",
+      "C4",
+      "C5",
+      "C5 Aircross"
+    ]
+  },
 
-      specialtyGroup.style.display = "block";
+  "تشيكي": {
+    "سكودا": [
+      "أوكتافيا",
+      "سوبيرب",
+      "فابيا",
+      "رابيد",
+      "كودياك",
+      "كاروك"
+    ]
+  },
 
-    } else if (type === "seller") {
+  "بريطاني": {
+    "لاندروفر": [
+      "رانج روفر",
+      "ديسكفري",
+      "ديفندر",
+      "إيفوك"
+    ],
+    "جاغوار": [
+      "XE",
+      "XF",
+      "F-Pace",
+      "F-Type"
+    ],
+    "بنتلي": [
+      "كونتيننتال",
+      "بنتايجا",
+      "فلاينغ سبير"
+    ]
+  },
 
-      sellerSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
-
-      specialtyGroup.style.display = "block";
-
-    } else if (type === "both") {
-
-      const allSpecialties = [
-        ...maintenanceSpecialties,
-        ...sellerSpecialties
-      ];
-
-      allSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
-
-      specialtyGroup.style.display = "block";
-
-    } else {
-
-      specialtyGroup.style.display = "none";
-      specialtySelect.value = "";
-
-    }
-
-  });
-
-}
-  // إغلاق نافذة التسجيل
-  window.closeModal = function () {
-    const el = document.getElementById("registrationModal");
-    if (el) el.classList.remove("active");
-  };
-
-  // حفظ التسجيلات
-  const registrationForm = document.getElementById("registrationForm");
-
-  if (registrationForm) {
-    registrationForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-
-const data = {
-  name: document.getElementById("name")?.value || "",
-  phone: document.getElementById("phone")?.value || "",
-  city: document.getElementById("city")?.value || "",
-  region: document.getElementById("region")?.value || "",
-  regType: document.getElementById("regType")?.value || "",
-  specialty: document.getElementById("specialty")?.value || "",
-  workDays: document.getElementById("workDays")?.value || "",
-  workHours: document.getElementById("workHours")?.value || "",
-  mapLocation: document.getElementById("mapLocation")?.value || "",
-  description: document.getElementById("description")?.value || ""
+  "ماليزي": {
+    "بروتون": [
+      "سابا",
+      "بيرسونا",
+      "إكسورا"
+    ],
+    "بيرودوا": [
+      "Myvi",
+      "Axia",
+      "Bezza"
+    ]
+  }
 };
 
-const ok = await saveRegistration(data);
-      if (ok) {
-        alert("تم الحفظ");
-        registrationForm.reset();
-        const regModal = document.getElementById("registrationModal");
-        if (regModal) regModal.classList.remove("active");
-        // بعد الحفظ، نعيد تحميل قائمة المحلات ليظهر للجميع
-        loadRegistrations();
-      } else {
-        alert("حدث خطأ أثناء الحفظ");
-      }
-    });
-  }
+// ======================================================
+// المتغيرات العامة
+// ======================================================
 
-  // إرسال تعليق
-  window.sendComment = async function (shopId) {
+let selectedVehicleItems = [];
+let allRegistrations = [];
 
-    const name = document.getElementById(`name-${shopId}`).value.trim();
-    const comment = document.getElementById(`comment-${shopId}`).value.trim();
-    const rating = parseInt(document.getElementById(`rating-${shopId}`).value);
+// ======================================================
+// حماية النصوص
+// ======================================================
 
-    if (!comment) {
-      alert("اكتب تعليقاً أولاً");
-      return;
-    }
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-    const ok = await saveComment({
-      shopId,
-      name: name || "مستخدم",
-      comment,
-      rating
-    });
+function escapeAttribute(value) {
+  return escapeHTML(value);
+}
 
-    if (!ok) {
-      alert("حدث خطأ أثناء الحفظ");
-      return;
-    }
+// ======================================================
+// البيانات العامة
+// ======================================================
 
-    document.getElementById(`comment-${shopId}`).value = "";
-    document.getElementById(`name-${shopId}`).value = "";
+window.appData = {
+  maintenanceSpecialties,
+  sellerSpecialties,
+  vehicleData
+};
 
-    loadComments(shopId);
-  };
+// ======================================================
+// السيارات المختارة
+// ======================================================
 
-  // تحميل التعليقات
-  async function loadComments(shopId) {
+window.getSelectedVehicles = function () {
+  return [...selectedVehicleItems];
+};
 
-    const box = document.getElementById(`comments-${shopId}`);
+window.clearSelectedVehicles = function () {
+  selectedVehicleItems = [];
+  renderSelectedVehicles();
+};
 
-    if (!box) return;
+window.removeSelectedVehicle = function (index) {
+  selectedVehicleItems.splice(index, 1);
+  renderSelectedVehicles();
+};
 
-    const comments = await getComments(shopId);
-
-    if (!Array.isArray(comments) || comments.length === 0) {
-      box.innerHTML = "لا توجد تعليقات";
-      return;
-    }
-
-    box.innerHTML = "";
-
-    comments.forEach(c => {
-
-      box.innerHTML += `
-      <div class="comment-card">
-        <strong>${c.name}</strong><br>
-        <span>${"⭐".repeat(c.rating)}</span>
-        <p>${c.comment}</p>
-        <hr>
-      </div>
-    `;
-
-    });
-
-  }
-
-
-// ================================
-// فتح قسم الصيانة أو المبيعات
-// ================================
-// ================================
-// فتح قسم الصيانة أو المبيعات
-// ================================
+// ======================================================
+// فتح الأقسام
+// ======================================================
 
 window.openCategory = function (type) {
+
+  console.log("فتح القسم:", type);
 
   const title = document.querySelector(".section-title");
   const grid = document.querySelector(".category-grid");
 
-  if (!title || !grid) {
-    console.error("category elements not found");
+  if (type === "maintenance") {
+
+    if (title) {
+      title.textContent = "🔧 فئات الصيانة";
+    }
+
+    if (grid) {
+      grid.innerHTML = maintenanceSpecialties.map(item => `
+        <div class="category-card"
+             onclick="showCategoryRegistrations('maintenance', '${escapeAttribute(item)}')">
+
+          <div class="category-icon maintenance-icon">🔧</div>
+
+          <h3>${escapeHTML(item)}</h3>
+
+          <p>محلات وخدمات ${escapeHTML(item)}</p>
+
+        </div>
+      `).join("");
+    }
+
     return;
   }
 
+  if (type === "seller") {
+
+    if (title) {
+      title.textContent = "🛒 فئات المبيعات";
+    }
+
+    if (grid) {
+      grid.innerHTML = sellerSpecialties.map(item => `
+        <div class="category-card"
+             onclick="showCategoryRegistrations('seller', '${escapeAttribute(item)}')">
+
+          <div class="category-icon sales-icon">🛒</div>
+
+          <h3>${escapeHTML(item)}</h3>
+
+          <p>محلات بيع ${escapeHTML(item)}</p>
+
+        </div>
+      `).join("");
+    }
+
+    return;
+  }
+
+  if (type === "both") {
+
+    if (title) {
+      title.textContent = "🔧🛒 الصيانة والمبيعات";
+    }
+
+    if (grid) {
+      grid.innerHTML = `
+        <div class="category-card"
+             onclick="openCategory('maintenance')">
+
+          <div class="category-icon maintenance-icon">🔧</div>
+          <h3>الصيانة</h3>
+          <p>جميع خدمات صيانة السيارات</p>
+
+        </div>
+
+        <div class="category-card"
+             onclick="openCategory('seller')">
+
+          <div class="category-icon sales-icon">🛒</div>
+          <h3>المبيعات</h3>
+          <p>قطع الغيار والإكسسوارات</p>
+
+        </div>
+      `;
+    }
+
+    return;
+  }
+
+  if (type === "all") {
+
+    loadRegistrations();
+    return;
+  }
+
+  console.warn("نوع القسم غير معروف:", type);
+};
+
+// ======================================================
+// عرض المحلات حسب الفئة
+// ======================================================
+
+window.showCategoryRegistrations = async function (
+  type,
+  category
+) {
+
+  console.log("عرض:", type, category);
+
+  const container =
+    document.getElementById("registrationsList");
+
+  if (!container) {
+    console.warn("registrationsList غير موجود");
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="loading">
+      ⏳ جارٍ تحميل المحلات...
+    </div>
+  `;
+
+  try {
+
+    const registrations =
+      await getRegistrations();
+
+    const filtered = registrations.filter(shop => {
+
+      if (type === "maintenance") {
+        return (
+          shop.regType === "maintenance" ||
+          shop.regType === "both"
+        ) &&
+        getShopSpecialties(shop).includes(category);
+      }
+
+      if (type === "seller") {
+        return (
+          shop.regType === "seller" ||
+          shop.regType === "both"
+        ) &&
+        getShopSpecialties(shop).includes(category);
+      }
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+
+      container.innerHTML = `
+        <div class="no-registrations">
+          لا توجد محلات مسجلة ضمن هذه الفئة حتى الآن.
+        </div>
+      `;
+
+      return;
+    }
+
+    renderRegistrations(
+      filtered,
+      container
+    );
+
+  } catch (error) {
+
+    console.error(
+      "showCategoryRegistrations:",
+      error
+    );
+
+    container.innerHTML = `
+      <div class="no-registrations">
+        حدث خطأ أثناء تحميل المحلات.
+      </div>
+    `;
+  }
+};
+
+// ======================================================
+// الرجوع وإظهار كل المحلات
+// ======================================================
+
+window.showAllRegistrations = function () {
+  loadRegistrations();
+};
+
+// ======================================================
+// عند تحميل الصفحة
+// ======================================================
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    console.log(
+      "دليل المحلات: script.js يعمل بنجاح"
+    );
+
+    setupRegistrationForm();
+    setupVehicleSelectors();
+
+    loadRegistrations();
+  }
+);
+// ======================================================
+// دليل المحلات - script.js
+// الجزء 2/3: التسجيل + السيارات + النوافذ
+// ======================================================
+
+// ======================================================
+// نافذة اختيار نوع التسجيل
+// ======================================================
+
+window.openModal = function () {
+
+  const modal =
+    document.getElementById("typeModal");
+
+  if (modal) {
+    modal.classList.add("active");
+  } else {
+    console.warn("typeModal غير موجود");
+  }
+};
+
+window.closeTypeModal = function () {
+
+  const modal =
+    document.getElementById("typeModal");
+
+  if (modal) {
+    modal.classList.remove("active");
+  }
+};
+
+window.selectRegistrationType =
+function (type) {
+
+  const typeModal =
+    document.getElementById("typeModal");
+
+  const registrationModal =
+    document.getElementById(
+      "registrationModal"
+    );
+
+  const regType =
+    document.getElementById("regType");
+
+  if (typeModal) {
+    typeModal.classList.remove("active");
+  }
+
+  if (regType) {
+
+    regType.value = type;
+
+    regType.dispatchEvent(
+      new Event("change")
+    );
+  }
+
+  if (registrationModal) {
+    registrationModal.classList.add("active");
+  }
+};
+
+// ======================================================
+// إغلاق نافذة التسجيل
+// ======================================================
+
+window.closeModal = function () {
+
+  const modal =
+    document.getElementById(
+      "registrationModal"
+    );
+
+  if (modal) {
+    modal.classList.remove("active");
+  }
+};
+
+// ======================================================
+// تحميل التخصصات
+// ======================================================
+
+function loadSpecialties(type) {
+
+  const select =
+    document.getElementById("specialty");
+
+  const group =
+    document.getElementById(
+      "specialtyGroup"
+    );
+
+  if (!select || !group) {
+    return;
+  }
+
+  select.innerHTML = "";
+
+  let specialties = [];
+
   if (type === "maintenance") {
 
-    title.textContent = "🔧 خدمات الصيانة";
+    specialties =
+      [...maintenanceSpecialties];
 
-    grid.innerHTML = `
+  } else if (type === "seller") {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'فني تبريد وتكييف')">
-        <div class="category-icon maintenance-icon">❄️</div>
-        <h3>فني تبريد وتكييف</h3>
-        <p>صيانة أجهزة التبريد والتكييف</p>
+    specialties =
+      [...sellerSpecialties];
+
+  } else if (type === "both") {
+
+    specialties = [
+      ...maintenanceSpecialties,
+      ...sellerSpecialties
+    ];
+  }
+
+  if (specialties.length === 0) {
+
+    group.style.display = "none";
+    return;
+  }
+
+  group.style.display = "block";
+
+  specialties.forEach(
+    specialty => {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        specialty;
+
+      option.textContent =
+        specialty;
+
+      select.appendChild(
+        option
+      );
+    }
+  );
+}
+
+// ======================================================
+// إعداد نموذج التسجيل
+// ======================================================
+
+function setupRegistrationForm() {
+
+  const form =
+    document.getElementById(
+      "registrationForm"
+    );
+
+  const regType =
+    document.getElementById(
+      "regType"
+    );
+
+  if (!form) {
+    return;
+  }
+
+  if (regType) {
+
+    regType.addEventListener(
+      "change",
+      () => {
+
+        loadSpecialties(
+          regType.value
+        );
+
+      }
+    );
+  }
+
+  form.addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+      const name =
+        document.getElementById(
+          "name"
+        )?.value.trim() || "";
+
+      const phone =
+        document.getElementById(
+          "phone"
+        )?.value.trim() || "";
+
+      const city =
+        document.getElementById(
+          "city"
+        )?.value.trim() || "";
+
+      const region =
+        document.getElementById(
+          "region"
+        )?.value.trim() || "";
+
+      const activityType =
+        document.getElementById(
+          "regType"
+        )?.value || "";
+
+      const workDays =
+        document.getElementById(
+          "workDays"
+        )?.value.trim() || "";
+
+      const workHours =
+        document.getElementById(
+          "workHours"
+        )?.value.trim() || "";
+
+      const mapLocation =
+        document.getElementById(
+          "mapLocation"
+        )?.value.trim() || "";
+
+      const description =
+        document.getElementById(
+          "description"
+        )?.value.trim() || "";
+
+      const specialtySelect =
+        document.getElementById(
+          "specialty"
+        );
+
+      const specialties =
+        specialtySelect
+          ? Array.from(
+              specialtySelect.selectedOptions
+            ).map(
+              option => option.value
+            )
+          : [];
+
+      const vehicles =
+        window.getSelectedVehicles();
+
+      // ----------------------------------------------
+      // التحقق
+      // ----------------------------------------------
+
+      if (!name) {
+        alert("يرجى إدخال اسم المحل");
+        return;
+      }
+
+      if (!phone) {
+        alert("يرجى إدخال رقم الهاتف");
+        return;
+      }
+
+      if (!city) {
+        alert("يرجى اختيار المحافظة");
+        return;
+      }
+
+      if (!region) {
+        alert("يرجى إدخال المنطقة");
+        return;
+      }
+
+      if (!activityType) {
+        alert("يرجى اختيار نوع النشاط");
+        return;
+      }
+
+      // ----------------------------------------------
+      // البيانات
+      // ----------------------------------------------
+
+      const data = {
+
+        name,
+
+        phone,
+
+        city,
+
+        region,
+
+        regType:
+          activityType,
+
+        specialties,
+
+        specialty:
+          specialties.join(" • "),
+
+        vehicles,
+
+        workDays,
+
+        workHours,
+
+        mapLocation,
+
+        description,
+
+        rating: 0,
+
+        ratingCount: 0
+
+      };
+
+      console.log(
+        "سيتم حفظ:",
+        data
+      );
+
+      const button =
+        form.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (button) {
+
+        button.disabled = true;
+
+        button.textContent =
+          "⏳ جارٍ التسجيل...";
+      }
+
+      try {
+
+        const saved =
+          await saveRegistration(
+            data
+          );
+
+        if (!saved) {
+
+          alert(
+            "❌ تعذر حفظ التسجيل"
+          );
+
+          return;
+        }
+
+        alert(
+          "✅ تم تسجيل المحل بنجاح"
+        );
+
+        form.reset();
+
+        window.clearSelectedVehicles();
+
+        const specialtyGroup =
+          document.getElementById(
+            "specialtyGroup"
+          );
+
+        if (specialtyGroup) {
+          specialtyGroup.style.display =
+            "none";
+        }
+
+        window.closeModal();
+
+        await loadRegistrations();
+
+      } catch (error) {
+
+        console.error(
+          "registration error:",
+          error
+        );
+
+        alert(
+          "❌ حدث خطأ أثناء تسجيل المحل"
+        );
+
+      } finally {
+
+        if (button) {
+
+          button.disabled = false;
+
+          button.textContent =
+            "✅ تسجيل المحل";
+        }
+      }
+    }
+  );
+}
+
+// ======================================================
+// إعداد السيارات
+// ======================================================
+
+function setupVehicleSelectors() {
+
+  const origin =
+    document.getElementById(
+      "vehicleOrigin"
+    );
+
+  const brand =
+    document.getElementById(
+      "vehicleBrand"
+    );
+
+  const model =
+    document.getElementById(
+      "vehicleModel"
+    );
+
+  const year =
+    document.getElementById(
+      "vehicleYear"
+    );
+
+  const brandGroup =
+    document.getElementById(
+      "vehicleBrandGroup"
+    );
+
+  const modelGroup =
+    document.getElementById(
+      "vehicleModelGroup"
+    );
+
+  const yearGroup =
+    document.getElementById(
+      "vehicleYearGroup"
+    );
+
+  const addButton =
+    document.getElementById(
+      "addVehicleBtn"
+    );
+
+  // ----------------------------------------------
+  // السنوات
+  // ----------------------------------------------
+
+  if (year && year.options.length <= 1) {
+
+    for (
+      let y = new Date().getFullYear();
+      y >= 1980;
+      y--
+    ) {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value = y;
+      option.textContent = y;
+
+      year.appendChild(
+        option
+      );
+    }
+  }
+
+  // ----------------------------------------------
+  // المنشأ
+  // ----------------------------------------------
+
+  if (origin) {
+
+    origin.addEventListener(
+      "change",
+      () => {
+
+        const value =
+          origin.value;
+
+        if (brand) {
+
+          brand.innerHTML =
+            `<option value="">اختر الشركة</option>`;
+        }
+
+        if (model) {
+
+          model.innerHTML =
+            `<option value="">اختر الموديل</option>`;
+        }
+
+        if (brandGroup) {
+
+          brandGroup.style.display =
+            value
+              ? "block"
+              : "none";
+        }
+
+        if (modelGroup) {
+          modelGroup.style.display =
+            "none";
+        }
+
+        if (yearGroup) {
+          yearGroup.style.display =
+            "none";
+        }
+
+        if (
+          !value ||
+          !vehicleData[value]
+        ) {
+          return;
+        }
+
+        Object.keys(
+          vehicleData[value]
+        ).forEach(
+          brandName => {
+
+            const option =
+              document.createElement(
+                "option"
+              );
+
+            option.value =
+              brandName;
+
+            option.textContent =
+              brandName;
+
+            brand.appendChild(
+              option
+            );
+          }
+        );
+      }
+    );
+  }
+
+  // ----------------------------------------------
+  // الشركة
+  // ----------------------------------------------
+
+  if (brand) {
+
+    brand.addEventListener(
+      "change",
+      () => {
+
+        const originValue =
+          origin?.value || "";
+
+        const brandValue =
+          brand.value || "";
+
+        if (model) {
+
+          model.innerHTML =
+            `<option value="">اختر الموديل</option>`;
+        }
+
+        if (modelGroup) {
+
+          modelGroup.style.display =
+            brandValue
+              ? "block"
+              : "none";
+        }
+
+        if (yearGroup) {
+          yearGroup.style.display =
+            "none";
+        }
+
+        if (
+          !originValue ||
+          !brandValue ||
+          !vehicleData[originValue] ||
+          !vehicleData[originValue][brandValue]
+        ) {
+          return;
+        }
+
+        vehicleData[
+          originValue
+        ][
+          brandValue
+        ].forEach(
+          modelName => {
+
+            const option =
+              document.createElement(
+                "option"
+              );
+
+            option.value =
+              modelName;
+
+            option.textContent =
+              modelName;
+
+            model.appendChild(
+              option
+            );
+          }
+        );
+      }
+    );
+  }
+
+  // ----------------------------------------------
+  // الموديل
+  // ----------------------------------------------
+
+  if (model) {
+
+    model.addEventListener(
+      "change",
+      () => {
+
+        if (yearGroup) {
+
+          yearGroup.style.display =
+            model.value
+              ? "block"
+              : "none";
+        }
+      }
+    );
+  }
+
+  // ----------------------------------------------
+  // إضافة السيارة
+  // ----------------------------------------------
+
+  if (addButton) {
+
+    addButton.addEventListener(
+      "click",
+      () => {
+
+        const originValue =
+          origin?.value || "";
+
+        const brandValue =
+          brand?.value || "";
+
+        const modelValue =
+          model?.value || "";
+
+        const yearValue =
+          year?.value || "";
+
+        if (
+          !originValue ||
+          !brandValue ||
+          !modelValue
+        ) {
+
+          alert(
+            "اختر منشأ السيارة والشركة والموديل أولاً"
+          );
+
+          return;
+        }
+
+        const exists =
+          selectedVehicleItems.some(
+            item =>
+              item.origin === originValue &&
+              item.brand === brandValue &&
+              item.model === modelValue &&
+              item.year === yearValue
+          );
+
+        if (exists) {
+
+          alert(
+            "هذه السيارة مضافة مسبقًا"
+          );
+
+          return;
+        }
+
+        selectedVehicleItems.push({
+
+          origin:
+            originValue,
+
+          brand:
+            brandValue,
+
+          model:
+            modelValue,
+
+          year:
+            yearValue
+
+        });
+
+        renderSelectedVehicles();
+      }
+    );
+  }
+}
+
+// ======================================================
+// عرض السيارات المختارة
+// ======================================================
+
+function renderSelectedVehicles() {
+
+  const container =
+    document.getElementById(
+      "selectedVehicles"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  if (
+    selectedVehicleItems.length === 0
+  ) {
+
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML =
+    selectedVehicleItems
+      .map(
+        (item, index) => `
+
+          <div class="selected-vehicle">
+
+            <span>
+              🚗
+              ${escapeHTML(item.origin)}
+              -
+              ${escapeHTML(item.brand)}
+              -
+              ${escapeHTML(item.model)}
+              ${
+                item.year
+                  ? `(${escapeHTML(item.year)})`
+                  : ""
+              }
+            </span>
+
+            <button
+              type="button"
+              onclick="removeSelectedVehicle(${index})">
+
+              ✕
+
+            </button>
+
+          </div>
+
+        `
+      )
+      .join("");
+}
+
+// ======================================================
+// تحديث قائمة التسجيلات
+// ======================================================
+
+window.refreshRegistrations =
+async function () {
+
+  await loadRegistrations();
+
+};
+// ======================================================
+// دليل المحلات - script.js
+// الجزء 3/3: المحلات + التقييمات + التعليقات
+// ======================================================
+
+// ======================================================
+// جلب المحلات
+// ======================================================
+
+async function loadRegistrations() {
+
+  const container =
+    document.getElementById(
+      "registrationsList"
+    );
+
+  if (!container) {
+    console.warn(
+      "registrationsList غير موجود"
+    );
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="loading">
+      ⏳ جارٍ تحميل المحلات...
+    </div>
+  `;
+
+  try {
+
+    const registrations =
+      await getRegistrations();
+
+    allRegistrations =
+      Array.isArray(
+        registrations
+      )
+        ? registrations
+        : [];
+
+    if (
+      allRegistrations.length === 0
+    ) {
+
+      container.innerHTML = `
+        <div class="no-registrations">
+          لا توجد محلات مسجلة حتى الآن
+        </div>
+      `;
+
+      return;
+    }
+
+    renderRegistrations(
+      allRegistrations,
+      container
+    );
+
+  } catch (error) {
+
+    console.error(
+      "loadRegistrations:",
+      error
+    );
+
+    container.innerHTML = `
+      <div class="no-registrations">
+        ❌ حدث خطأ أثناء تحميل المحلات
       </div>
+    `;
+  }
+}
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'كهربائي سيارات')">
-        <div class="category-icon maintenance-icon">⚡</div>
-        <h3>كهربائي سيارات</h3>
-        <p>الأعمال الكهربائية</p>
-      </div>
+// ======================================================
+// الحصول على تخصصات المحل
+// ======================================================
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'فيتر (ميكانيكي)')">
-        <div class="category-icon maintenance-icon">🔧</div>
-        <h3>فيتر (ميكانيكي)</h3>
-        <p>صيانة ميكانيكية</p>
-      </div>
+function getShopSpecialties(shop) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'حداد صدر')">
-        <div class="category-icon maintenance-icon">🔨</div>
-        <h3>حداد صدر</h3>
-        <p>أعمال الحدادة وتصليح الهيكل</p>
-      </div>
+  if (
+    Array.isArray(
+      shop.specialties
+    )
+  ) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'سمكري')">
-        <div class="category-icon maintenance-icon">🚗</div>
-        <h3>سمكري</h3>
-        <p>تصليح هياكل السيارات</p>
-      </div>
+    return shop.specialties;
+  }
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'صباغ سيارات')">
-        <div class="category-icon maintenance-icon">🎨</div>
-        <h3>صباغ سيارات</h3>
-        <p>صبغ السيارات</p>
-      </div>
+  if (
+    typeof shop.specialty ===
+    "string"
+  ) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'ميزان وبالنص')">
-        <div class="category-icon maintenance-icon">⚙️</div>
-        <h3>ميزان وبالنص</h3>
-        <p>ميزان السيارات والبالنص</p>
-      </div>
+    return shop.specialty
+      .split(" • ")
+      .map(
+        item => item.trim()
+      )
+      .filter(Boolean);
+  }
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'تبديل زيت وفلاتر')">
-        <div class="category-icon maintenance-icon">🛢️</div>
-        <h3>تبديل زيت وفلاتر</h3>
-        <p>خدمات الزيوت والفلاتر</p>
-      </div>
+  return [];
+}
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'صيانة إيرباك')">
-        <div class="category-icon maintenance-icon">🛡️</div>
-        <h3>صيانة إيرباك</h3>
-        <p>صيانة الوسائد الهوائية</p>
-      </div>
+// ======================================================
+// نوع النشاط
+// ======================================================
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'صيانة ABS')">
-        <div class="category-icon maintenance-icon">🚨</div>
-        <h3>صيانة ABS</h3>
-        <p>صيانة نظام ABS</p>
-      </div>
+function getTypeLabel(type) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'بريكات (دسكات، فلنجات، سفايف)')">
-        <div class="category-icon maintenance-icon">🛞</div>
-        <h3>بريكات</h3>
-        <p>دسكات، فلنجات، سفايف</p>
-      </div>
+  if (type === "maintenance") {
+    return "🔧 صيانة";
+  }
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'صيانة جير أوتوماتيك')">
-        <div class="category-icon maintenance-icon">⚙️</div>
-        <h3>صيانة جير أوتوماتيك</h3>
-        <p>صيانة نواقل الحركة</p>
-      </div>
+  if (type === "seller") {
+    return "🛒 مبيعات";
+  }
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'برمجة وفحص كمبيوتر')">
-        <div class="category-icon maintenance-icon">💻</div>
-        <h3>برمجة وفحص كمبيوتر</h3>
-        <p>فحص وبرمجة السيارات</p>
-      </div>
+  if (type === "both") {
+    return "🔧🛒 صيانة + مبيعات";
+  }
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'بطاريات')">
-        <div class="category-icon maintenance-icon">🔋</div>
-        <h3>بطاريات</h3>
-        <p>بيع وصيانة البطاريات</p>
-      </div>
+  return "";
+}
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'إطارات وبنجرجي')">
-        <div class="category-icon maintenance-icon">🛞</div>
-        <h3>إطارات وبنجرجي</h3>
-        <p>الإطارات وخدمات البنجرجي</p>
-      </div>
+// ======================================================
+// التقييم
+// ======================================================
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'تبديل زجاج')">
-        <div class="category-icon maintenance-icon">🪟</div>
-        <h3>تبديل زجاج</h3>
-        <p>زجاج السيارات</p>
-      </div>
+function getRatingText(shop) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'صيانة رديتر')">
-        <div class="category-icon maintenance-icon">🌡️</div>
-        <h3>صيانة رديتر</h3>
-        <p>صيانة أنظمة التبريد</p>
-      </div>
+  const rating =
+    Number(
+      shop.rating || 0
+    );
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'عادم (إكزوزت)')">
-        <div class="category-icon maintenance-icon">🔧</div>
-        <h3>عادم (إكزوزت)</h3>
-        <p>أنظمة العادم</p>
-      </div>
+  const count =
+    Number(
+      shop.ratingCount ||
+      shop.votes ||
+      0
+    );
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'مفاتيح سيارات وبرمجة ريموت')">
-        <div class="category-icon maintenance-icon">🔑</div>
-        <h3>مفاتيح وبرمجة ريموت</h3>
-        <p>مفاتيح السيارات والريموت</p>
-      </div>
+  if (!count) {
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'تلميع وحماية')">
-        <div class="category-icon maintenance-icon">✨</div>
-        <h3>تلميع وحماية</h3>
-        <p>تلميع وحماية السيارات</p>
+    return "⭐ لا توجد تقييمات";
+  }
+
+  return `
+    ⭐ ${rating.toFixed(1)}
+    |
+    👥 ${count} تقييم
+  `;
+}
+
+// ======================================================
+// رسم المحلات
+// ======================================================
+
+function renderRegistrations(
+  shops,
+  container
+) {
+
+  container.innerHTML = "";
+
+  shops.forEach(
+    shop => {
+
+      const card =
+        document.createElement(
+          "div"
+        );
+
+      card.className =
+        "registration-card";
+
+      const specialties =
+        getShopSpecialties(
+          shop
+        );
+
+      const vehicleText =
+        Array.isArray(
+          shop.vehicles
+        )
+          ? shop.vehicles
+              .map(
+                vehicle =>
+                  `${vehicle.brand || ""} ${vehicle.model || ""} ${
+                    vehicle.year || ""
+                  }`
+              )
+              .join(" • ")
+          : "";
+
+      card.innerHTML = `
+
+        <h3>
+          ${escapeHTML(
+            shop.name ||
+            shop.shopName ||
+            "بدون اسم"
+          )}
+        </h3>
+
+        <p>
+          ${getTypeLabel(
+            shop.regType
+          )}
+        </p>
+
+        ${
+          specialties.length
+            ? `
+              <p>
+                🔧
+                ${escapeHTML(
+                  specialties.join(" • ")
+                )}
+              </p>
+            `
+            : ""
+        }
+
+        ${
+          vehicleText
+            ? `
+              <p>
+                🚗
+                ${escapeHTML(
+                  vehicleText
+                )}
+              </p>
+            `
+            : ""
+        }
+
+        <p>
+          📍
+          ${escapeHTML(
+            shop.city || ""
+          )}
+          -
+          ${escapeHTML(
+            shop.region || ""
+          )}
+        </p>
+
+        ${
+          shop.workDays
+            ? `
+              <p>
+                📅
+                ${escapeHTML(
+                  shop.workDays
+                )}
+              </p>
+            `
+            : ""
+        }
+
+        ${
+          shop.workHours
+            ? `
+              <p>
+                🕐
+                ${escapeHTML(
+                  shop.workHours
+                )}
+              </p>
+            `
+            : ""
+        }
+
+        ${
+          shop.description
+            ? `
+              <p>
+                📝
+                ${escapeHTML(
+                  shop.description
+                )}
+              </p>
+            `
+            : ""
+        }
+
+        <p class="shop-rating">
+          ${getRatingText(
+            shop
+          )}
+        </p>
+
+        <div class="shop-actions">
+
+          ${
+            shop.phone
+              ? `
+                <a
+                  href="tel:${escapeAttribute(
+                    shop.phone
+                  )}">
+
+                  <button
+                    type="button">
+                    📞 اتصال
+                  </button>
+
+                </a>
+              `
+              : ""
+          }
+
+          ${
+            shop.mapLocation
+              ? `
+                <a
+                  href="${escapeAttribute(
+                    shop.mapLocation
+                  )}"
+                  target="_blank"
+                  rel="noopener noreferrer">
+
+                  <button
+                    type="button">
+                    📍 الموقع
+                  </button>
+
+                </a>
+              `
+              : ""
+          }
+
+        </div>
+
+        <hr>
+
+        <h4>
+          ⭐ تقييم المحل
+        </h4>
+
+        <div
+          class="comments-list"
+          id="comments-${escapeAttribute(
+            shop.id
+          )}">
+
+          ⏳ جارٍ تحميل التقييمات...
+
+        </div>
+
+        <input
+          type="text"
+          id="name-${escapeAttribute(
+            shop.id
+          )}"
+          placeholder="اسمك (اختياري)">
+
+        <textarea
+          id="comment-${escapeAttribute(
+            shop.id
+          )}"
+          placeholder="اكتب تعليقك (اختياري)">
+        </textarea>
+
+        <select
+          id="rating-${escapeAttribute(
+            shop.id
+          )}">
+
+          <option value="5">
+            ⭐⭐⭐⭐⭐
+          </option>
+
+          <option value="4">
+            ⭐⭐⭐⭐
+          </option>
+
+          <option value="3">
+            ⭐⭐⭐
+          </option>
+
+          <option value="2">
+            ⭐⭐
+          </option>
+
+          <option value="1">
+            ⭐
+          </option>
+
+        </select>
+
+        <button
+          type="button"
+          class="comment-btn"
+          onclick="sendComment('${escapeAttribute(
+            shop.id
+          )}')">
+
+          ⭐ إرسال التقييم
+
+        </button>
+
+        <button
+          type="button"
+          class="report-shop-btn"
+          onclick="reportShop('${escapeAttribute(
+            shop.id
+          )}')">
+
+          ⚠️ إبلاغ عن معلومات غير صحيحة
+
+        </button>
+
+      `;
+
+      container.appendChild(
+        card
+      );
+
+      loadComments(
+        shop.id
+      );
+    }
+  );
+}
+
+// ======================================================
+// إرسال التقييم
+// ======================================================
+
+window.sendComment =
+async function(shopId) {
+
+  const nameInput =
+    document.getElementById(
+      `name-${shopId}`
+    );
+
+  const commentInput =
+    document.getElementById(
+      `comment-${shopId}`
+    );
+
+  const ratingInput =
+    document.getElementById(
+      `rating-${shopId}`
+    );
+
+  if (!ratingInput) {
+
+    alert(
+      "لم يتم العثور على خانة التقييم"
+    );
+
+    return;
+  }
+
+  const name =
+    nameInput?.value.trim() ||
+    "مستخدم";
+
+  const comment =
+    commentInput?.value.trim() ||
+    "";
+
+  const rating =
+    Number(
+      ratingInput.value
+    );
+
+  if (
+    rating < 1 ||
+    rating > 5
+  ) {
+
+    alert(
+      "اختر تقييمًا من 1 إلى 5"
+    );
+
+    return;
+  }
+
+  try {
+
+    const saved =
+      await saveComment({
+
+        shopId,
+
+        name,
+
+        comment,
+
+        rating
+
+      });
+
+    if (!saved) {
+
+      alert(
+        "❌ تعذر حفظ التقييم"
+      );
+
+      return;
+    }
+
+    if (nameInput) {
+      nameInput.value = "";
+    }
+
+    if (commentInput) {
+      commentInput.value = "";
+    }
+
+    await loadRegistrations();
+
+    alert(
+      "✅ تم تسجيل تقييمك بنجاح"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "sendComment:",
+      error
+    );
+
+    alert(
+      "❌ حدث خطأ أثناء إرسال التقييم"
+    );
+  }
+};
+
+// ======================================================
+// تحميل التعليقات
+// ======================================================
+
+async function loadComments(
+  shopId
+) {
+
+  const box =
+    document.getElementById(
+      `comments-${shopId}`
+    );
+
+  if (!box) {
+    return;
+  }
+
+  try {
+
+    const comments =
+      await getComments(
+        shopId
+      );
+
+    if (
+      !Array.isArray(
+        comments
+      ) ||
+      comments.length === 0
+    ) {
+
+      box.innerHTML = `
+        <p>
+          لا توجد تقييمات حتى الآن
+        </p>
+      `;
+
+      return;
+    }
+
+    const ratings =
+      comments
+        .map(
+          item =>
+            Number(
+              item.rating
+            )
+        )
+        .filter(
+          rating =>
+            rating >= 1 &&
+            rating <= 5
+        );
+
+    const total =
+      ratings.reduce(
+        (sum, value) =>
+          sum + value,
+        0
+      );
+
+    const average =
+      ratings.length
+        ? total /
+          ratings.length
+        : 0;
+
+    box.innerHTML = `
+
+      <div class="rating-summary">
+
+        <strong>
+          ⭐ ${average.toFixed(1)}
+        </strong>
+
+        <span>
+          👥 ${ratings.length} تقييم
+        </span>
+
       </div>
 
     `;
 
-  } else if (type === "seller") {
+    comments.forEach(
+      comment => {
 
-    title.textContent = "🛒 فئات المبيعات";
+        const rating =
+          Number(
+            comment.rating || 0
+          );
+
+        const stars =
+          "⭐".repeat(
+            Math.max(
+              0,
+              Math.min(
+                5,
+                rating
+              )
+            )
+          );
+
+        const item =
+          document.createElement(
+            "div"
+          );
+
+        item.className =
+          "comment-card";
+
+        item.innerHTML = `
+
+          <strong>
+            ${escapeHTML(
+              comment.name ||
+              "مستخدم"
+            )}
+          </strong>
+
+          <div>
+            ${stars}
+          </div>
+
+          ${
+            comment.comment
+              ? `
+                <p>
+                  ${escapeHTML(
+                    comment.comment
+                  )}
+                </p>
+              `
+              : `
+                <p>
+                  <small>
+                    ⭐ تقييم بدون تعليق
+                  </small>
+                </p>
+              `
+          }
+
+        `;
+
+        box.appendChild(
+          item
+        );
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "loadComments:",
+      error
+    );
+
+    box.innerHTML = `
+      <p>
+        تعذر تحميل التقييمات
+      </p>
+    `;
+  }
+}
+
+// ======================================================
+// الإبلاغ عن محل
+// ======================================================
+
+window.reportShop =
+function(shopId) {
+
+  const shop =
+    allRegistrations.find(
+      item =>
+        String(item.id) ===
+        String(shopId)
+    );
+
+  const shopName =
+    shop?.name ||
+    "هذا المحل";
+
+  const confirmed =
+    confirm(
+      `هل تريد الإبلاغ عن معلومات غير صحيحة في ${shopName}؟`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  alert(
+    "⚠️ تم تسجيل طلب الإبلاغ. سيتم مراجعة المعلومات."
+  );
+
+  console.log(
+    "Shop report:",
+    shopId
+  );
+};
+
+// ======================================================
+// البحث عن المحلات
+// ======================================================
+
+window.searchRegistrations =
+function(value) {
+
+  const text =
+    String(
+      value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const container =
+    document.getElementById(
+      "registrationsList"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  if (!text) {
+
+    renderRegistrations(
+      allRegistrations,
+      container
+    );
+
+    return;
+  }
+
+  const filtered =
+    allRegistrations.filter(
+      shop => {
+
+        const specialties =
+          getShopSpecialties(
+            shop
+          ).join(" ");
+
+        const vehicles =
+          Array.isArray(
+            shop.vehicles
+          )
+            ? shop.vehicles
+                .map(
+                  v =>
+                    `${v.origin} ${v.brand} ${v.model}`
+                )
+                .join(" ")
+            : "";
+
+        const searchable =
+          `
+            ${shop.name || ""}
+            ${shop.city || ""}
+            ${shop.region || ""}
+            ${specialties}
+            ${vehicles}
+          `.toLowerCase();
+
+        return searchable.includes(
+          text
+        );
+      }
+    );
+
+  if (!filtered.length) {
+
+    container.innerHTML = `
+      <div class="no-registrations">
+        لا توجد نتائج مطابقة للبحث
+      </div>
+    `;
+
+    return;
+  }
+
+  renderRegistrations(
+    filtered,
+    container
+  );
+};
+
+// ======================================================
+// دوال بديلة حتى تعمل الأزرار القديمة في index.html
+// ======================================================
+
+window.openCategoryRegistrations =
+function(type, category) {
+
+  return window.showCategoryRegistrations(
+    type,
+    category
+  );
+};
+
+window.backToCategories =
+function() {
+
+  const title =
+    document.querySelector(
+      ".section-title"
+    );
+
+  if (title) {
+    title.textContent =
+      "دليل المحلات";
+  }
+
+  const grid =
+    document.querySelector(
+      ".category-grid"
+    );
+
+  if (grid) {
 
     grid.innerHTML = `
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'قطع غيار أصلية')">
-        <div class="category-icon sales-icon">🔩</div>
-        <h3>قطع غيار أصلية</h3>
-        <p>قطع غيار أصلية</p>
+      <div
+        class="category-card"
+        onclick="openCategory('maintenance')">
+
+        <div class="category-icon">
+          🔧
+        </div>
+
+        <h3>
+          الصيانة
+        </h3>
+
+        <p>
+          خدمات صيانة السيارات
+        </p>
+
       </div>
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'قطع غيار تجارية')">
-        <div class="category-icon sales-icon">🔧</div>
-        <h3>قطع غيار تجارية</h3>
-        <p>قطع غيار تجارية</p>
-      </div>
+      <div
+        class="category-card"
+        onclick="openCategory('seller')">
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'إكسسوارات')">
-        <div class="category-icon sales-icon">🚗</div>
-        <h3>إكسسوارات</h3>
-        <p>إكسسوارات السيارات</p>
-      </div>
+        <div class="category-icon">
+          🛒
+        </div>
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'زيوت')">
-        <div class="category-icon sales-icon">🛢️</div>
-        <h3>زيوت</h3>
-        <p>زيوت السيارات</p>
-      </div>
+        <h3>
+          المبيعات
+        </h3>
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'بطاريات')">
-        <div class="category-icon sales-icon">🔋</div>
-        <h3>بطاريات</h3>
-        <p>بطاريات السيارات</p>
-      </div>
+        <p>
+          قطع الغيار والإكسسوارات
+        </p>
 
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'إطارات')">
-        <div class="category-icon sales-icon">🛞</div>
-        <h3>إطارات</h3>
-        <p>إطارات وعجلات</p>
-      </div>
-
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'جنوط')">
-        <div class="category-icon sales-icon">⚙️</div>
-        <h3>جنوط</h3>
-        <p>جنوط السيارات</p>
-      </div>
-
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'إنارة')">
-        <div class="category-icon sales-icon">💡</div>
-        <h3>إنارة</h3>
-        <p>إنارة السيارات</p>
-      </div>
-
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'أجهزة فحص')">
-        <div class="category-icon sales-icon">💻</div>
-        <h3>أجهزة فحص</h3>
-        <p>أجهزة فحص السيارات</p>
-      </div>
-
-      <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'مكيفات سيارات')">
-        <div class="category-icon sales-icon">❄️</div>
-        <h3>مكيفات سيارات</h3>
-        <p>مكيفات وأنظمة تكييف السيارات</p>
       </div>
 
     `;
   }
 };
-});
+
+// ======================================================
+// تأكيد تحميل السكربت
+// ======================================================
+
+console.log(
+  "✅ script.js تم تحميله بالكامل"
+);
+
+console.log(
+  "openCategory:",
+  typeof window.openCategory
+);
+
+console.log(
+  "openModal:",
+  typeof window.openModal
+);

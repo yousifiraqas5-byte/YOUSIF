@@ -1,532 +1,1180 @@
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-  <link rel="manifest" href="manifest.json">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="دليل المحلات">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#dff7f5">
+
   <title>دليل المحلات</title>
+
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* زر التسجيل العائم */
-    .floating-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 15px 25px;
-      border-radius: 50px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-      transition: all 0.3s ease;
-      z-index: 100;
-    }
-
-    .floating-btn:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-    }
-
-    /* خلفية النافذة المنبثقة */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    /* النافذة المنبثقة */
-    .modal {
-      background: white;
-      padding: 40px;
-      border-radius: 15px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      position: relative;
-      animation: slideIn 0.3s ease;
-    }
-
-    /* نافذة اختيار النوع أصغر */
-    .type-modal .modal {
-      max-width: 360px;
-      padding: 24px;
-      text-align: center;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateY(-50px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    /* زر الإغلاق */
-    .close-btn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: none;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-      color: #666;
-      transition: color 0.3s;
-    }
-
-    .close-btn:hover {
-      color: #000;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      color: #333;
-    }
-
-    .form-group input,
-    .form-group textarea,
-    .form-group select {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 5px;
-      font-size: 14px;
-      font-family: Arial, sans-serif;
-      box-sizing: border-box;
-      transition: border-color 0.3s;
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .form-group textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    .btn-submit {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 30px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      transition: transform 0.3s;
-      width: 100%;
-    }
-
-    .btn-submit:hover {
-      transform: translateY(-2px);
-    }
-
-    .registrations-container {
-      margin-top: 40px;
-    }
-
-    .registration-card {
-      background: #f8f9fa;
-      border-right: 4px solid #667eea;
-      padding: 20px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .registration-card h3 {
-      margin-top: 0;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .registration-card p {
-      margin: 8px 0;
-      color: #555;
-      line-height: 1.6;
-    }
-
-    .registration-card strong {
-      color: #333;
-    }
-
-    .no-registrations {
-      text-align: center;
-      color: #999;
-      padding: 30px;
-      font-size: 16px;
-    }
-
-    .delete-btn {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      margin-top: 10px;
-      transition: background-color 0.3s;
-    }
-
-    .delete-btn:hover {
-      background-color: #c82333;
-    }
-
-    .modal h2 {
-      margin-top: 0;
-      color: #333;
-      text-align: center;
-    }
-
-    .loading {
-      text-align: center;
-      color: #666;
-      padding: 20px;
-    }
-
-    /* علم العراق مع نص فوقه */
-    .flag-wrapper {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
-
-    .iraq-flag {
-      max-width: 160px;
-      width: 14%;
-      height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .flag-overlay {
-      position: absolute;
-      top: 12%; /* فوق العلم */
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
-      font-weight: 800;
-      font-size: 20px;
-      text-shadow: 0 3px 8px rgba(0,0,0,0.6);
-      background: rgba(0,0,0,0.25);
-      padding: 6px 12px;
-      border-radius: 8px;
-      pointer-events: none;
-    }
-
-    /* ضبط الخطوط على الهواتف */
-    @media (max-width: 600px) {
-      .iraq-flag { width: 28%; }
-      .flag-overlay { font-size: 16px; }
-    }
-  </style>
 </head>
 
 <body>
-<div class="container">
-  <!-- الواجهة الرئيسية الجديدة -->
-
-<header class="app-header">
-
-  <div class="app-logo">
-    <h1>دليل المحلات</h1>
-    <p>اعثر على الخدمة التي تحتاجها بسهولة</p>
-  </div>
-
-  <button class="profile-btn">
-    👤
-  </button>
-
-</header>
-
-
-<!-- مربع البحث -->
-
-<div class="search-box">
-
-  <span class="search-icon">🔍</span>
-
-  <input
-    type="search"
-    id="searchInput"
-    placeholder="ابحث عن محل أو خدمة..."
-  >
-
-</div>
-
-
-<!-- البطاقة الرئيسية -->
-
-<div class="hero-card">
-
-  <h2>خدمات متنوعة بجودة عالية</h2>
-
-  <p>
-    ابحث عن أفضل مقدمي خدمات الصيانة
-    والمحلات والبائعين بالقرب منك.
-  </p>
-
-  <button class="hero-btn" onclick="openModal()">
-    📋 سجل خدمتك الآن
-  </button>
-
-</div>
-
-
-<!-- الأقسام -->
-
-<h2 class="section-title">الأقسام</h2>
-
-<div class="category-grid">
-
-  <!-- الصيانة -->
-
-  <div
-    class="category-card"
-    onclick="openCategory('maintenance')"
-  >
-
-    <div class="category-icon maintenance-icon">
-      🔧
-    </div>
-
-    <h3>الصيانة</h3>
-
-    <p>
-      خدمات الصيانة والإصلاح
-    </p>
-
-  </div>
-
-
-  <!-- المبيعات -->
-
-  <div
-    class="category-card"
-    onclick="openCategory('seller')"
-  >
-
-    <div class="category-icon sales-icon">
-      🛒
-    </div>
-
-    <h3>المبيعات</h3>
-
-    <p>
-      المحلات والبائعين
-    </p>
-
-  </div>
-
-</div>
-
-
-<!-- التنقل السفلي -->
-
-<nav class="bottom-nav">
-
-  <button class="nav-item active">
-
-    <span class="nav-icon">🏠</span>
-
-    الرئيسية
-
-  </button>
-
-
-  <button class="nav-item">
-
-    <span class="nav-icon">🔧</span>
-
-    الصيانة
-
-  </button>
-
-
-  <button class="nav-item">
-
-    <span class="nav-icon">🛒</span>
-
-    المبيعات
-
-  </button>
-
-
-  <button
-    class="nav-item"
-    onclick="openModal()"
-  >
-
-    <span class="nav-icon">📋</span>
-
-    التسجيل
-
-  </button>
-
-</nav>
-
-  <!-- نافذة اختيار نوع التسجيل (تظهر أولاً) -->
-  <div class="modal-overlay type-modal" id="typeModal">
-    <div class="modal">
-      <button class="close-btn" onclick="closeTypeModal()">✕</button>
-      <h2>اختر نوع التسجيل</h2>
-      <p style="margin-bottom:16px; color:#555;">هل تريد التسجيل كبائع أم كخدمة صيانة؟</p>
-      <div style="display:flex; gap:12px; justify-content:center;">
-        <button onclick="selectRegistrationType('seller')" style="background:#28a745;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛒 مبيعات</button>
-        <button onclick="selectRegistrationType('maintenance')" style="background:#007bff;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🛠️ صيانة</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- النافذة المنبثقة للتسجيل -->
-  <div class="modal-overlay" id="registrationModal">
-    <div class="modal">
-      <button class="close-btn" onclick="closeModal()">✕</button>
-      <h2>📋 نموذج التسجيل</h2>
-      <form id="registrationForm">
-        <div class="form-group">
-  <label for="name">🏪 اسم المحل:</label>
-  <input
-    type="text"
-    id="name"
-    name="name"
-    required
-    placeholder="أدخل اسم المحل">
-</div>
-
-<div class="form-group">
-  <label for="city">🇮🇶 المحافظة:</label>
-  <input
-    type="text"
-    id="city"
-    name="city"
-    required
-    placeholder="مثال: بغداد">
-</div>
-
-<div class="form-group">
-  <label for="region">📍 المدينة / المنطقة:</label>
-  <input
-    type="text"
-    id="region"
-    name="region"
-    required
-    placeholder="مثال: الكرادة">
-</div>
-
-<div class="form-group">
-  <label for="phone">📞 رقم الهاتف:</label>
-  <input
-    type="tel"
-    id="phone"
-    name="phone"
-    required
-    placeholder="مثال: 07812345678">
-</div>
-
-<div class="form-group">
-  <label for="regType">🏷️ الفئة:</label>
-  <select id="regType" name="regType" required>
-    <option value="">اختر الفئة</option>
-    <option value="maintenance">🔧 صيانة</option>
-    <option value="seller">🛒 بيع</option>
-    <option value="both">🔧🛒 صيانة + بيع</option>
-  </select>
-</div>
-<div class="form-group" id="specialtyGroup" style="display: none;">
-  <label for="specialty">🛠️ التخصص:</label>
-
-  <select id="specialty" name="specialty">
-    <option value="">اختر التخصص</option>
-  </select>
-</div>
-<div class="form-group">
-  <label for="workDays">📅 أيام الدوام:</label>
-  <input
-    type="text"
-    id="workDays"
-    name="workDays"
-    placeholder="مثال: السبت - الخميس">
-</div>
-
-<div class="form-group">
-  <label for="workHours">🕐 أوقات الدوام:</label>
-  <input
-    type="text"
-    id="workHours"
-    name="workHours"
-    placeholder="مثال: 8:00 صباحًا - 6:00 مساءً">
-</div>
-
-<div class="form-group">
-  <label for="mapLocation">🗺️ الموقع على الخريطة:</label>
-  <input
-    type="url"
-    id="mapLocation"
-    name="mapLocation"
-    placeholder="رابط الموقع على Google Maps (اختياري)">
-</div>
-
-<div class="form-group">
-  <label for="description">📝 وصف مختصر:</label>
-  <textarea
-    id="description"
-    name="description"
-    placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
-</div>
-
-<button type="submit" class="btn-submit">
-  ✅ تسجيل المحل
-</button>
-      </form>
-    </div>
-  </div>
 
   <div class="container">
-    <div id="registrationsList" class="registrations-container">
-      <!-- هنا ستُعرض قائمة المحلات تلقائياً -->
+
+    <!-- =========================
+         رأس التطبيق
+    ========================== -->
+    <header class="app-header">
+
+      <div class="app-logo">
+        <h1>دليل المحلات</h1>
+        <p>دليل الخدمات والصيانة</p>
+      </div>
+
+      <button class="profile-btn" type="button">
+        👤
+      </button>
+
+    </header>
+
+
+    <!-- =========================
+         البحث
+    ========================== -->
+    <div class="search-box">
+
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="🔍 ابحث عن محل أو خدمة..."
+        autocomplete="off"
+      >
+
+      <span class="search-icon">🔍</span>
+
     </div>
+
+
+    <!-- =========================
+         الصفحة الرئيسية
+    ========================== -->
+    <main id="homePage">
+
+      <div class="hero-card">
+
+        <h2>ابحث عن الخدمة التي تحتاجها</h2>
+
+        <p>
+          اعثر على محلات وورش الصيانة والخدمات القريبة منك
+          بسهولة.
+        </p>
+
+        <button
+          class="hero-btn"
+          type="button"
+          onclick="openCategory('maintenance')">
+          🔧 استكشف الخدمات
+        </button>
+
+      </div>
+
+
+      <h2 class="section-title">
+        الأقسام
+      </h2>
+
+
+      <div class="category-grid" id="categoryGrid">
+
+        <div
+          class="category-card"
+          onclick="openCategory('maintenance')">
+
+          <div class="category-icon maintenance-icon">
+            🔧
+          </div>
+
+          <h3>الصيانة</h3>
+
+          <p>
+            خدمات الصيانة والإصلاح
+          </p>
+
+        </div>
+
+
+        <div
+          class="category-card"
+          onclick="openCategory('seller')">
+
+          <div class="category-icon sales-icon">
+            🛒
+          </div>
+
+          <h3>المبيعات</h3>
+
+          <p>
+            المحلات والبائعين
+          </p>
+
+        </div>
+
+      </div>
+
+    </main>
+
+
+    <!-- =========================
+         صفحة الأقسام
+    ========================== -->
+    <section
+      id="categoryPage"
+      class="category-page"
+      style="display:none;">
+
+      <button
+        type="button"
+        class="back-btn"
+        onclick="goHome()">
+        ← رجوع
+      </button>
+
+      <h2 class="section-title">
+        خدمات الصيانة
+      </h2>
+
+      <div
+        class="category-grid"
+        id="categoryGridPage">
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         منطقة الفلاتر والنتائج
+    ========================== -->
+    <section
+      id="resultsPage"
+      class="results-page"
+      style="display:none;">
+
+      <button
+        type="button"
+        class="back-btn"
+        onclick="backToCategories()">
+        ← رجوع
+      </button>
+
+      <h2
+        class="section-title"
+        id="resultsTitle">
+        النتائج
+      </h2>
+
+
+      <!-- الفلاتر -->
+
+      <div
+        class="filters-card"
+        id="filtersCard">
+
+        <h3>🔎 تصفية النتائج</h3>
+
+
+        <div class="filter-group">
+
+          <label for="filterCity">
+            المحافظة
+          </label>
+
+          <select id="filterCity">
+            <option value="">كل المحافظات</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterRegion">
+            المنطقة
+          </label>
+
+          <select id="filterRegion">
+            <option value="">كل المناطق</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterSpecialty">
+            التخصص
+          </label>
+
+          <select id="filterSpecialty">
+            <option value="">كل التخصصات</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterOrigin">
+            منشأ السيارة
+          </label>
+
+          <select id="filterOrigin">
+            <option value="">كل المناشئ</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterBrand">
+            شركة السيارة
+          </label>
+
+          <select id="filterBrand">
+            <option value="">كل الشركات</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterModel">
+            موديل السيارة
+          </label>
+
+          <select id="filterModel">
+            <option value="">كل الموديلات</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterYear">
+            سنة الموديل
+          </label>
+
+          <select id="filterYear">
+            <option value="">كل السنوات</option>
+          </select>
+
+        </div>
+
+
+        <div class="filter-group">
+
+          <label for="filterRating">
+            التقييم
+          </label>
+
+          <select id="filterRating">
+
+            <option value="">
+              كل التقييمات
+            </option>
+
+            <option value="4.5">
+              ⭐ 4.5 فأعلى
+            </option>
+
+            <option value="4">
+              ⭐ 4 فأعلى
+            </option>
+
+            <option value="3">
+              ⭐ 3 فأعلى
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="filter-reset-btn"
+          onclick="resetFilters()">
+
+          إعادة ضبط الفلاتر
+
+        </button>
+
+      </div>
+
+
+      <!-- النتائج -->
+
+      <div
+        id="registrationsList"
+        class="registrations-container">
+
+        <div class="loading">
+          جارٍ تحميل النتائج...
+        </div>
+
+      </div>
+
+    </section>
+
+```html
+<!-- =====================================================
+     نافذة اختيار نوع التسجيل
+===================================================== -->
+
+<div class="modal-overlay type-modal" id="typeModal">
+
+  <div class="modal">
+
+    <button
+      class="close-btn"
+      onclick="closeTypeModal()">
+      ✕
+    </button>
+
+    <h2>اختر نوع التسجيل</h2>
+
+    <p style="color:#666;">
+      يمكنك التسجيل كخدمة صيانة أو محل مبيعات
+    </p>
+
+    <div class="registration-type-buttons">
+
+      <button
+        type="button"
+        onclick="selectRegistrationType('maintenance')">
+        🛠️ صيانة
+      </button>
+
+      <button
+        type="button"
+        onclick="selectRegistrationType('seller')">
+        🛒 مبيعات
+      </button>
+
+    </div>
+
   </div>
 
-<script type="module" src="script.js"></script>
+</div>
+
+
+<!-- =====================================================
+     نافذة التسجيل
+===================================================== -->
+
+<div
+  class="modal-overlay"
+  id="registrationModal">
+
+  <div class="modal registration-modal">
+
+    <button
+      class="close-btn"
+      onclick="closeModal()">
+      ✕
+    </button>
+
+
+    <h2>📋 تسجيل محل</h2>
+
+
+    <form id="registrationForm">
+
+
+      <!-- اسم المحل -->
+
+      <div class="form-group">
+
+        <label for="name">
+          🏪 اسم المحل
+        </label>
+
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          placeholder="مثال: ورشة النخبة">
+
+      </div>
+
+
+      <!-- المحافظة -->
+
+      <div class="form-group">
+
+        <label for="city">
+          🇮🇶 المحافظة
+        </label>
+
+        <select
+          id="city"
+          name="city"
+          required>
+
+          <option value="">
+            اختر المحافظة
+          </option>
+
+          <option>بغداد</option>
+          <option>البصرة</option>
+          <option>نينوى</option>
+          <option>أربيل</option>
+          <option>السليمانية</option>
+          <option>دهوك</option>
+          <option>كركوك</option>
+          <option>الأنبار</option>
+          <option>ديالى</option>
+          <option>صلاح الدين</option>
+          <option>بابل</option>
+          <option>كربلاء</option>
+          <option>النجف</option>
+          <option>واسط</option>
+          <option>القادسية</option>
+          <option>ميسان</option>
+          <option>ذي قار</option>
+          <option>المثنى</option>
+
+        </select>
+
+      </div>
+
+
+      <!-- المنطقة -->
+
+      <div class="form-group">
+
+        <label for="region">
+          📍 المنطقة
+        </label>
+
+        <input
+          type="text"
+          id="region"
+          name="region"
+          required
+          placeholder="مثال: الكرادة">
+
+      </div>
+
+
+      <!-- الهاتف -->
+
+      <div class="form-group">
+
+        <label for="phone">
+          📞 رقم الهاتف
+        </label>
+
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          required
+          placeholder="078xxxxxxxx">
+
+      </div>
+
+
+      <!-- الفئة -->
+
+      <div class="form-group">
+
+        <label for="regType">
+          🏷️ الفئة
+        </label>
+
+        <select
+          id="regType"
+          name="regType"
+          required>
+
+          <option value="">
+            اختر الفئة
+          </option>
+
+          <option value="maintenance">
+            🔧 صيانة
+          </option>
+
+          <option value="seller">
+            🛒 بيع
+          </option>
+
+          <option value="both">
+            🔧🛒 صيانة + بيع
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- =================================================
+           التخصصات - اختيار متعدد
+      ================================================== -->
+
+      <div
+        class="form-group"
+        id="specialtyGroup"
+        style="display:none;">
+
+        <label>
+          🛠️ التخصص
+        </label>
+
+        <p class="optional-note">
+          اختياري — يمكنك اختيار أكثر من تخصص
+        </p>
+
+        <div
+          id="specialtyOptions"
+          class="multi-select-box">
+        </div>
+
+      </div>
+
+
+      <!-- =================================================
+           قسم السيارات
+      ================================================== -->
+
+      <div
+        class="vehicle-section"
+        id="vehicleSection">
+
+        <h3>
+          🚗 السيارات التي يخدمها المحل
+        </h3>
+
+        <p class="optional-note">
+          اختياري — يمكنك اختيار أكثر من منشأ وشركة وموديل
+        </p>
+
+
+        <!-- المنشأ -->
+
+        <div class="form-group">
+
+          <label for="vehicleOrigin">
+            🌍 منشأ السيارة
+          </label>
+
+          <select
+            id="vehicleOrigin">
+
+            <option value="">
+              اختر المنشأ
+            </option>
+
+            <option value="كوري">
+              🇰🇷 كوري
+            </option>
+
+            <option value="أمريكي">
+              🇺🇸 أمريكي
+            </option>
+
+            <option value="ياباني">
+              🇯🇵 ياباني
+            </option>
+
+            <option value="صيني">
+              🇨🇳 صيني
+            </option>
+
+            <option value="فرنسي">
+              🇫🇷 فرنسي
+            </option>
+
+            <option value="تشيكي">
+              🇨🇿 تشيكي
+            </option>
+
+            <option value="بريطاني">
+              🇬🇧 بريطاني
+            </option>
+
+            <option value="ماليزي">
+              🇲🇾 ماليزي
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- الشركات -->
+
+        <div
+          class="form-group"
+          id="vehicleBrandGroup"
+          style="display:none;">
+
+          <label for="vehicleBrand">
+            🏢 الشركة
+          </label>
+
+          <select
+            id="vehicleBrand">
+
+            <option value="">
+              اختر الشركة
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- الموديلات -->
+
+        <div
+          class="form-group"
+          id="vehicleModelGroup"
+          style="display:none;">
+
+          <label for="vehicleModel">
+            🚘 الموديل
+          </label>
+
+          <select
+            id="vehicleModel">
+
+            <option value="">
+              اختر الموديل
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- السنة -->
+
+        <div
+          class="form-group"
+          id="vehicleYearGroup"
+          style="display:none;">
+
+          <label for="vehicleYear">
+            📅 السنة
+          </label>
+
+          <select
+            id="vehicleYear">
+
+            <option value="">
+              اختر السنة
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- قائمة السيارات المختارة -->
+
+        <div
+          id="selectedVehicles"
+          class="selected-items">
+        </div>
+
+
+        <button
+          type="button"
+          id="addVehicleBtn"
+          class="secondary-btn">
+
+          ➕ إضافة سيارة أخرى
+
+        </button>
+
+      </div>
+
+
+      <!-- أيام الدوام -->
+
+      <div class="form-group">
+
+        <label for="workDays">
+          📅 أيام الدوام
+        </label>
+
+        <input
+          type="text"
+          id="workDays"
+          name="workDays"
+          placeholder="مثال: السبت - الخميس">
+
+      </div>
+
+
+      <!-- أوقات الدوام -->
+
+      <div class="form-group">
+
+        <label for="workHours">
+          🕐 أوقات الدوام
+        </label>
+
+        <input
+          type="text"
+          id="workHours"
+          name="workHours"
+          placeholder="مثال: 8 صباحًا - 6 مساءً">
+
+      </div>
+
+
+      <!-- الموقع -->
+
+      <div class="form-group">
+
+        <label for="mapLocation">
+          🗺️ الموقع على الخريطة
+        </label>
+
+        <input
+          type="url"
+          id="mapLocation"
+          name="mapLocation"
+          placeholder="رابط Google Maps - اختياري">
+
+      </div>
+
+
+      <!-- الوصف -->
+
+      <div class="form-group">
+
+        <label for="description">
+          📝 وصف مختصر
+        </label>
+
+        <textarea
+          id="description"
+          name="description"
+          placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها">
+        </textarea>
+
+      </div>
+
+
+      <!-- التسجيل -->
+
+      <button
+        type="submit"
+        class="btn-submit">
+
+        ✅ تسجيل المحل
+
+      </button>
+
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     التواصل مع إدارة البرنامج
+===================================================== -->
+
+<div class="program-contact">
+
+  <button
+    type="button"
+    onclick="contactProgramAdmin()">
+
+    📞 التواصل مع إدارة البرنامج
+
+  </button>
+
+</div>
+
+
+<!-- =====================================================
+     إبلاغ عن معلومات غير صحيحة
+===================================================== -->
+
+<div class="report-section">
+
+  <button
+    type="button"
+    onclick="reportIncorrectInfo()">
+
+    ⚠️ إبلاغ عن معلومات غير صحيحة
+
+  </button>
+
+</div>
+```
+
+        <form id="registrationForm">
+
+
+          <!-- اسم المحل -->
+
+          <div class="form-group">
+
+            <label for="name">
+              🏪 اسم المحل:
+            </label>
+
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              placeholder="أدخل اسم المحل">
+
+          </div>
+
+
+          <!-- المحافظة -->
+
+          <div class="form-group">
+
+            <label for="city">
+              🇮🇶 المحافظة:
+            </label>
+
+            <input
+              type="text"
+              id="city"
+              name="city"
+              required
+              placeholder="مثال: بغداد">
+
+          </div>
+
+
+          <!-- المنطقة -->
+
+          <div class="form-group">
+
+            <label for="region">
+              📍 المنطقة:
+            </label>
+
+            <input
+              type="text"
+              id="region"
+              name="region"
+              required
+              placeholder="مثال: الكرادة">
+
+          </div>
+
+
+          <!-- الهاتف -->
+
+          <div class="form-group">
+
+            <label for="phone">
+              📞 رقم الهاتف:
+            </label>
+
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              required
+              placeholder="مثال: 07812345678">
+
+          </div>
+
+
+          <!-- الفئة -->
+
+          <div class="form-group">
+
+            <label for="regType">
+              🏷️ الفئة:
+            </label>
+
+            <select
+              id="regType"
+              name="regType"
+              required>
+
+              <option value="">
+                اختر الفئة
+              </option>
+
+              <option value="maintenance">
+                🔧 صيانة
+              </option>
+
+              <option value="seller">
+                🛒 بيع
+              </option>
+
+              <option value="both">
+                🔧🛒 صيانة + بيع
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- =========================
+               التخصصات المتعددة
+          ========================== -->
+
+          <div
+            class="form-group"
+            id="specialtyGroup"
+            style="display:none;">
+
+            <label>
+              🛠️ التخصصات:
+            </label>
+
+            <p class="optional-note">
+              يمكنك اختيار أكثر من تخصص — اختياري
+            </p>
+
+            <div
+              id="specialtyOptions"
+              class="multi-select-grid">
+            </div>
+
+          </div>
+
+
+          <!-- =========================
+               السيارات
+          ========================== -->
+
+          <div
+            class="form-group"
+            id="vehiclesGroup">
+
+            <label>
+              🚗 السيارات التي تخدمها
+            </label>
+
+            <p class="optional-note">
+              اختياري — يمكنك اختيار أكثر من منشأ وشركة وموديل
+            </p>
+
+
+            <div
+              id="vehicleSelections">
+            </div>
+
+
+            <button
+              type="button"
+              class="add-vehicle-btn"
+              onclick="addVehicleSelector()">
+
+              ＋ إضافة سيارة
+
+            </button>
+
+          </div>
+
+
+          <!-- أيام الدوام -->
+
+          <div class="form-group">
+
+            <label for="workDays">
+              📅 أيام الدوام:
+            </label>
+
+            <input
+              type="text"
+              id="workDays"
+              name="workDays"
+              placeholder="مثال: السبت - الخميس">
+
+          </div>
+
+
+          <!-- أوقات الدوام -->
+
+          <div class="form-group">
+
+            <label for="workHours">
+              🕐 أوقات الدوام:
+            </label>
+
+            <input
+              type="text"
+              id="workHours"
+              name="workHours"
+              placeholder="مثال: 8:00 صباحًا - 6:00 مساءً">
+
+          </div>
+
+
+          <!-- الموقع -->
+
+          <div class="form-group">
+
+            <label for="mapLocation">
+              🗺️ الموقع على الخريطة:
+            </label>
+
+            <input
+              type="url"
+              id="mapLocation"
+              name="mapLocation"
+              placeholder="رابط Google Maps — اختياري">
+
+          </div>
+
+
+          <!-- الوصف -->
+
+          <div class="form-group">
+
+            <label for="description">
+              📝 وصف مختصر:
+            </label>
+
+            <textarea
+              id="description"
+              name="description"
+              placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها">
+            </textarea>
+
+          </div>
+
+
+          <button
+            type="submit"
+            class="btn-submit">
+
+            ✅ تسجيل المحل
+
+          </button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================
+         شريط التنقل
+    ========================== -->
+
+    <nav class="bottom-nav">
+
+      <button
+        class="nav-item active"
+        type="button"
+        onclick="goHome()">
+
+        <span class="nav-icon">
+          🏠
+        </span>
+
+        الرئيسية
+
+      </button>
+
+
+      <button
+        class="nav-item"
+        type="button"
+        onclick="openCategory('maintenance')">
+
+        <span class="nav-icon">
+          🔧
+        </span>
+
+        الصيانة
+
+      </button>
+
+
+      <button
+        class="nav-item"
+        type="button"
+        onclick="openCategory('seller')">
+
+        <span class="nav-icon">
+          🛒
+        </span>
+
+        المبيعات
+
+      </button>
+
+
+      <button
+        class="nav-item"
+        type="button"
+        onclick="openModal()">
+
+        <span class="nav-icon">
+          📋
+        </span>
+
+        التسجيل
+
+      </button>
+
+    </nav>
+
+
+    <!-- =========================
+         أسفل التطبيق
+    ========================== -->
+
+    <footer class="app-footer">
+
+      <button
+        type="button"
+        class="contact-admin-btn"
+        onclick="contactAdmin()">
+
+        📞 التواصل مع إدارة البرنامج
+
+      </button>
+
+
+      <button
+        type="button"
+        class="report-admin-btn"
+        onclick="reportIncorrectInfo()">
+
+        ⚠️ إبلاغ عن معلومات غير صحيحة
+
+      </button>
+
+      <p>
+        دليل المحلات © 2026
+      </p>
+
+    </footer>
+
+  </div>
+
+
+  <!-- JavaScript -->
+
+  <script
+    type="module"
+    src="script.js">
+  </script>
+
 </body>
 </html>
+```
