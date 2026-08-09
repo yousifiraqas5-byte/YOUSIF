@@ -424,72 +424,99 @@
       <h2>📋 نموذج التسجيل</h2>
       <form id="registrationForm">
         <div class="form-group">
-          <label for="name">👤 الاسم الكامل:</label>
-          <input type="text" id="name" name="name" required placeholder="أدخل اسمك الكامل">
-        </div>
+  <label for="name">🏪 اسم المحل:</label>
+  <input
+    type="text"
+    id="name"
+    name="name"
+    required
+    placeholder="أدخل اسم المحل">
+</div>
 
-        <div class="form-group">
-          <label for="phone">📞 رقم الهاتف:</label>
-          <input type="tel" id="phone" name="phone" required placeholder="مثال: 07812345678">
-        </div>
+<div class="form-group">
+  <label for="city">🇮🇶 المحافظة:</label>
+  <input
+    type="text"
+    id="city"
+    name="city"
+    required
+    placeholder="مثال: بغداد">
+</div>
 
-        <div class="form-group">
-          <label for="address">🏠 العنوان:</label>
-          <input type="text" id="address" name="address" required placeholder="العنوان كاملاً">
-        </div>
+<div class="form-group">
+  <label for="region">📍 المدينة / المنطقة:</label>
+  <input
+    type="text"
+    id="region"
+    name="region"
+    required
+    placeholder="مثال: الكرادة">
+</div>
 
-        <div class="form-group">
-          <label for="region">🗺️ المنطقة/الحي:</label>
-          <input type="text" id="region" name="region" required placeholder="اسم المنطقة أو الحي">
-        </div>
+<div class="form-group">
+  <label for="phone">📞 رقم الهاتف:</label>
+  <input
+    type="tel"
+    id="phone"
+    name="phone"
+    required
+    placeholder="مثال: 07812345678">
+</div>
 
-        <div class="form-group">
-          <label for="landmark">📍 أقرب نقطة دالة:</label>
-          <input type="text" id="landmark" name="landmark" required placeholder="مثال: بجانب المسجد الكبير">
-        </div>
+<div class="form-group">
+  <label for="regType">🏷️ الفئة:</label>
+  <select id="regType" name="regType" required>
+    <option value="">اختر الفئة</option>
+    <option value="maintenance">🔧 صيانة</option>
+    <option value="seller">🛒 بيع</option>
+    <option value="both">🔧🛒 صيانة + بيع</option>
+  </select>
+</div>
+<div class="form-group" id="specialtyGroup" style="display: none;">
+  <label for="specialty">🛠️ التخصص:</label>
 
-        <!-- نوع التسجيل: بائع أو صيانة -->
-        <div class="form-group">
-          <label for="regType">🔽 نوع التسجيل:</label>
-          <select id="regType" name="regType" required>
-            <option value="">اختر نوع التسجيل</option>
-            <option value="seller">بائع</option>
-            <option value="maintenance">صيانة</option>
-          </select>
-        </div>
+  <select id="specialty" name="specialty">
+    <option value="">اختر التخصص</option>
+  </select>
+</div>
+<div class="form-group">
+  <label for="workDays">📅 أيام الدوام:</label>
+  <input
+    type="text"
+    id="workDays"
+    name="workDays"
+    placeholder="مثال: السبت - الخميس">
+</div>
 
-        <!-- خيارات الصيانة الفرعية (تظهر فقط عند اختيار صيانة) -->
-        <div class="form-group" id="maintenanceOptions" style="display:none;">
-          <label for="maintenanceType">🛠️ اختر تخصص الصيانة:</label>
-          <select id="maintenanceType" name="maintenanceType">
-            <option value="">اختر التخصص</option>
-            <option value="حداد صدر">حداد صدر</option>
-            <option value="فني تبريد">فني تبريد</option>
-            <option value="فيتر">فيتر</option>
-            <option value="كهربائي">كهربائي</option>
-            <option value="ميكانيكي عام">ميكانيكي عام</option>
-          </select>
-        </div>
+<div class="form-group">
+  <label for="workHours">🕐 أوقات الدوام:</label>
+  <input
+    type="text"
+    id="workHours"
+    name="workHours"
+    placeholder="مثال: 8:00 صباحًا - 6:00 مساءً">
+</div>
 
-        <!-- خيارات البائع الفرعية (تظهر فقط عند اختيار بائع) -->
-        <div class="form-group" id="sellerOptions" style="display:none;">
-          <label for="sellerType">🚗 نوع السيارة (للمبيعات):</label>
-          <select id="sellerType" name="sellerType">
-            <option value="">اختر نوع السيارة</option>
-            <option value="سيارة ركاب">سيارة ركاب</option>
-            <option value="شاحنة">شاحنة</option>
-            <option value="دراجة نارية">دراجة نارية</option>
-            <option value="سيارة نقل">سيارة نقل</option>
-            <option value="معدات ثقيلة">معدات ثقيلة</option>
-          </select>
-        </div>
+<div class="form-group">
+  <label for="mapLocation">🗺️ الموقع على الخريطة:</label>
+  <input
+    type="url"
+    id="mapLocation"
+    name="mapLocation"
+    placeholder="رابط الموقع على Google Maps (اختياري)">
+</div>
 
-        <div class="form-group">
-          <label for="specialty">🔧 الاختصاص:</label>
-          <textarea id="specialty" name="specialty" required placeholder="وصف تخصصك (مثال: تصليح صدر سيارات، كهرباء، إلخ)"></textarea>
-        </div>
+<div class="form-group">
+  <label for="description">📝 وصف مختصر:</label>
+  <textarea
+    id="description"
+    name="description"
+    placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
+</div>
 
-        <button type="submit" class="btn-submit">✅ تسجيل</button>
+<button type="submit" class="btn-submit">
+  ✅ تسجيل المحل
+</button>
       </form>
     </div>
   </div>

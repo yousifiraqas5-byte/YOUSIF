@@ -42,73 +42,149 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load and render registrations so everyone visiting the page sees the registered shops
   const registrationsContainer = document.getElementById('registrationsList');
-  async function loadRegistrations() {
-    if (!registrationsContainer) return;
-    registrationsContainer.innerHTML = '<div class="loading">جارٍ تحميل المحلات...</div>';
-    try {
-      const regs = await getRegistrations();
-      if (!Array.isArray(regs) || regs.length === 0) {
-        registrationsContainer.innerHTML = '<div class="no-registrations">لا توجد محلات مسجلة حتى الآن</div>';
-        return;
-      }
+    async function loadRegistrations() {
+  if (!registrationsContainer) return;
 
-      registrationsContainer.innerHTML = '';
-      regs.forEach(r => {
-        const typeLabel = r.regType === 'seller' ? 'بائع' : (r.regType === 'maintenance' ? 'صيانة' : r.regType || '');
-        registrationsContainer.innerHTML += `
-          <div class="registration-card">
-            <h3>${r.name || r.shopName || 'بدون اسم'}</h3>
-            <p><strong>النوع:</strong> ${typeLabel}</p>
-            <p><strong>الاختصاص:</strong> ${r.specialty || ''}</p>
-            <p><strong>المنطقة/الحي:</strong> ${r.region || ''}</p>
-            <p><strong>العنوان:</strong> ${r.address || ''}</p>
-            <p><strong>أقرب نقطة دالة:</strong> ${r.landmark || ''}</p>
-            <p><strong>الهاتف:</strong> ${r.phone || ''}</p>
-            <a href="tel:${r.phone || ''}">
-                <button>📞 اتصال</button>
-            </a>
+  registrationsContainer.innerHTML = "جارٍ تحميل المحلات...";
 
-            <hr>
+  try {
+    const regs = await getRegistrations();
 
-            <h4>💬 التعليقات</h4>
-
-            <div class="comments-list" id="comments-${r.id}">
-                جارٍ تحميل التعليقات...
-            </div>
-
-            <input
-                type="text"
-                id="name-${r.id}"
-                placeholder="اسمك">
-
-            <textarea
-                id="comment-${r.id}"
-                placeholder="اكتب تعليقك..."></textarea>
-
-            <select id="rating-${r.id}">
-                <option value="5">⭐⭐⭐⭐⭐</option>
-                <option value="4">⭐⭐⭐⭐</option>
-                <option value="3">⭐⭐⭐</option>
-                <option value="2">⭐⭐</option>
-                <option value="1">⭐</option>
-            </select>
-
-            <button class="comment-btn"
-                    onclick="sendComment('${r.id}')">
-                إرسال التعليق
-            </button>
-          </div>
-        `;
-
-        // Load comments for this registration right after rendering its card
-        loadComments(r.id);
-      });
-    } catch (err) {
-      console.error('loadRegistrations error:', err);
-      registrationsContainer.innerHTML = '<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>';
+    if (!Array.isArray(regs) || regs.length === 0) {
+      registrationsContainer.innerHTML =
+        "لا توجد محلات مسجلة حتى الآن";
+      return;
     }
-  }
 
+    registrationsContainer.innerHTML = "";
+
+    regs.forEach(r => {
+      const typeLabel =
+        r.regType === "seller"
+          ? "🛒 بيع"
+          : r.regType === "maintenance"
+          ? "🔧 صيانة"
+          : r.regType === "both"
+          ? "🔧🛒 صيانة + بيع"
+          : r.regType || "";
+
+      registrationsContainer.innerHTML += `
+        <div class="registration-card">
+
+          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
+
+          <p>
+            <strong>الفئة:</strong>
+            ${typeLabel}
+          </p>
+
+          <p>
+            <strong>التخصص:</strong>
+            ${r.specialty || "غير محدد"}
+          </p>
+
+          <p>
+            <strong>المحافظة:</strong>
+            ${r.city || ""}
+          </p>
+
+          <p>
+            <strong>المنطقة:</strong>
+            ${r.region || ""}
+          </p>
+
+          <p>
+            <strong>الهاتف:</strong>
+            ${r.phone || ""}
+          </p>
+
+          <p>
+            <strong>أيام الدوام:</strong>
+            ${r.workDays || "غير محدد"}
+          </p>
+
+          <p>
+            <strong>أوقات الدوام:</strong>
+            ${r.workHours || "غير محدد"}
+          </p>
+
+          ${
+            r.mapLocation
+              ? `
+                <p>
+                  <strong>🗺️ الموقع:</strong>
+                  <a href="${r.mapLocation}" target="_blank">
+                    فتح الموقع على الخريطة 📍
+                  </a>
+                </p>
+              `
+              : ""
+          }
+
+          ${
+            r.description
+              ? `
+                <p>
+                  <strong>📝 الوصف:</strong>
+                  ${r.description}
+                </p>
+              `
+              : ""
+          }
+
+          <a href="tel:${r.phone || ""}">
+            <button>📞 اتصال</button>
+          </a>
+
+          <hr>
+
+          <h4>💬 التقييمات والتعليقات</h4>
+
+          <div
+            class="comments-list"
+            id="comments-${r.id}">
+            جارٍ تحميل التعليقات...
+          </div>
+
+          <input
+            type="text"
+            id="name-${r.id}"
+            placeholder="اسمك">
+
+          <textarea
+            id="comment-${r.id}"
+            placeholder="اكتب تعليقك..."></textarea>
+
+          <select id="rating-${r.id}">
+            <option value="5">⭐⭐⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="1">⭐</option>
+          </select>
+
+          <button
+            class="comment-btn"
+            onclick="sendComment('${r.id}')">
+            إرسال التقييم
+          </button>
+
+        </div>
+      `;
+
+      loadComments(r.id);
+    });
+
+  } catch (err) {
+    console.error("loadRegistrations error:", err);
+
+    registrationsContainer.innerHTML = `
+      <div class="no-registrations">
+        حدث خطأ أثناء جلب المحلات
+      </div>
+    `;
+  }
+}
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -163,14 +239,15 @@ window.showCategoryRegistrations = async function(type, specialty) {
 
     const filtered = regs.filter(r => {
 
-      const sameType = r.regType === type;
+      const sameType =
+        r.regType === type ||
+        r.regType === "both";
 
       const sameSpecialty =
         !specialty ||
         (r.specialty || "").trim() === specialty.trim();
 
       return sameType && sameSpecialty;
-
     });
 
     if (filtered.length === 0) {
@@ -190,25 +267,32 @@ window.showCategoryRegistrations = async function(type, specialty) {
 
       const typeLabel =
         r.regType === "seller"
-          ? "مبيعات"
-          : "صيانة";
+          ? "🛒 بيع"
+          : r.regType === "maintenance"
+          ? "🔧 صيانة"
+          : r.regType === "both"
+          ? "🔧🛒 صيانة + بيع"
+          : r.regType || "";
 
       container.innerHTML += `
 
         <div class="registration-card">
 
-          <h3>
-            ${r.name || r.shopName || "بدون اسم"}
-          </h3>
+          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
 
           <p>
-            <strong>النوع:</strong>
+            <strong>الفئة:</strong>
             ${typeLabel}
           </p>
 
           <p>
-            <strong>الاختصاص:</strong>
-            ${r.specialty || ""}
+            <strong>التخصص:</strong>
+            ${r.specialty || "غير محدد"}
+          </p>
+
+          <p>
+            <strong>المحافظة:</strong>
+            ${r.city || ""}
           </p>
 
           <p>
@@ -217,14 +301,43 @@ window.showCategoryRegistrations = async function(type, specialty) {
           </p>
 
           <p>
-            <strong>العنوان:</strong>
-            ${r.address || ""}
-          </p>
-
-          <p>
             <strong>الهاتف:</strong>
             ${r.phone || ""}
           </p>
+
+          <p>
+            <strong>أيام الدوام:</strong>
+            ${r.workDays || "غير محدد"}
+          </p>
+
+          <p>
+            <strong>أوقات الدوام:</strong>
+            ${r.workHours || "غير محدد"}
+          </p>
+
+          ${
+            r.mapLocation
+              ? `
+                <p>
+                  <strong>🗺️ الموقع:</strong>
+                  <a href="${r.mapLocation}" target="_blank">
+                    فتح الموقع على الخريطة 📍
+                  </a>
+                </p>
+              `
+              : ""
+          }
+
+          ${
+            r.description
+              ? `
+                <p>
+                  <strong>📝 الوصف:</strong>
+                  ${r.description}
+                </p>
+              `
+              : ""
+          }
 
           <a href="tel:${r.phone || ""}">
             <button>📞 اتصال</button>
@@ -232,13 +345,36 @@ window.showCategoryRegistrations = async function(type, specialty) {
 
           <hr>
 
-          <h4>💬 التعليقات</h4>
+          <h4>💬 التقييمات والتعليقات</h4>
 
           <div
             class="comments-list"
             id="comments-${r.id}">
             جارٍ تحميل التعليقات...
           </div>
+
+          <input
+            type="text"
+            id="name-${r.id}"
+            placeholder="اسمك">
+
+          <textarea
+            id="comment-${r.id}"
+            placeholder="اكتب تعليقك..."></textarea>
+
+          <select id="rating-${r.id}">
+            <option value="5">⭐⭐⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="1">⭐</option>
+          </select>
+
+          <button
+            class="comment-btn"
+            onclick="sendComment('${r.id}')">
+            إرسال التقييم
+          </button>
 
         </div>
 
@@ -265,10 +401,10 @@ window.showCategoryRegistrations = async function(type, specialty) {
         حدث خطأ أثناء جلب النتائج
       </div>
     `;
-
   }
 
 };
+
   // Load registrations so all visitors see them
   loadRegistrations();
 
@@ -298,7 +434,88 @@ window.showCategoryRegistrations = async function(type, specialty) {
     const regModal = document.getElementById("registrationModal");
     if (regModal) regModal.classList.add("active");
   };
+// ================================
+// قائمة تخصصات الصيانة والبيع
+// ================================
+const maintenanceSpecialties = [
+  "فني تبريد وتكييف",
+  "كهربائي سيارات",
+  "فيتر (ميكانيكي)",
+  "حداد صدر",
+  "سمكري",
+  "صباغ سيارات",
+  "ميزان وبالنص",
+  "تبديل زيت وفلاتر",
+  "صيانة إيرباك",
+  "صيانة ABS",
+  "بريكات (دسكات، فلنجات، سفايف)",
+  "صيانة جير أوتوماتيك",
+  "برمجة وفحص كمبيوتر",
+  "بطاريات",
+  "إطارات وبنجرجي",
+  "تبديل زجاج",
+  "صيانة رديتر",
+  "عادم (إكزوزت)",
+  "مفاتيح سيارات وبرمجة ريموت",
+  "تلميع وحماية"
+];
 
+
+const regTypeSelect = document.getElementById("regType");
+const specialtyGroup = document.getElementById("specialtyGroup");
+const specialtySelect = document.getElementById("specialty");
+
+if (regTypeSelect && specialtyGroup && specialtySelect) {
+
+  regTypeSelect.addEventListener("change", function () {
+
+    const type = this.value;
+
+    specialtySelect.innerHTML =
+      '<option value="">اختر التخصص</option>';
+
+    if (type === "maintenance") {
+
+      maintenanceSpecialties.forEach(item => {
+        specialtySelect.innerHTML +=
+          `<option value="${item}">${item}</option>`;
+      });
+
+      specialtyGroup.style.display = "block";
+
+    } else if (type === "seller") {
+
+      sellerSpecialties.forEach(item => {
+        specialtySelect.innerHTML +=
+          `<option value="${item}">${item}</option>`;
+      });
+
+      specialtyGroup.style.display = "block";
+
+    } else if (type === "both") {
+
+      const allSpecialties = [
+        ...maintenanceSpecialties,
+        ...sellerSpecialties
+      ];
+
+      allSpecialties.forEach(item => {
+        specialtySelect.innerHTML +=
+          `<option value="${item}">${item}</option>`;
+      });
+
+      specialtyGroup.style.display = "block";
+
+    } else {
+
+      specialtyGroup.style.display = "none";
+      specialtySelect.value = "";
+
+    }
+
+  });
+
+}
   // إغلاق نافذة التسجيل
   window.closeModal = function () {
     const el = document.getElementById("registrationModal");
@@ -312,18 +529,21 @@ window.showCategoryRegistrations = async function(type, specialty) {
     registrationForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const data = {
-        name: document.getElementById("name")?.value || "",
-        phone: document.getElementById("phone")?.value || "",
-        address: document.getElementById("address")?.value || "",
-        region: document.getElementById("region")?.value || "",
-        landmark: document.getElementById("landmark")?.value || "",
-        regType: document.getElementById("regType")?.value || "",
-        specialty: document.getElementById("specialty")?.value || ""
-      };
 
-      const ok = await saveRegistration(data);
+const data = {
+  name: document.getElementById("name")?.value || "",
+  phone: document.getElementById("phone")?.value || "",
+  city: document.getElementById("city")?.value || "",
+  region: document.getElementById("region")?.value || "",
+  regType: document.getElementById("regType")?.value || "",
+  specialty: document.getElementById("specialty")?.value || "",
+  workDays: document.getElementById("workDays")?.value || "",
+  workHours: document.getElementById("workHours")?.value || "",
+  mapLocation: document.getElementById("mapLocation")?.value || "",
+  description: document.getElementById("description")?.value || ""
+};
 
+const ok = await saveRegistration(data);
       if (ok) {
         alert("تم الحفظ");
         registrationForm.reset();
@@ -402,6 +622,9 @@ window.showCategoryRegistrations = async function(type, specialty) {
 // ================================
 // فتح قسم الصيانة أو المبيعات
 // ================================
+// ================================
+// فتح قسم الصيانة أو المبيعات
+// ================================
 
 window.openCategory = function (type) {
 
@@ -420,45 +643,143 @@ window.openCategory = function (type) {
     grid.innerHTML = `
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'حداد')">
-        <div class="category-icon maintenance-icon">🔨</div>
-        <h3>حداد</h3>
-        <p>أعمال الحدادة</p>
+           onclick="showCategoryRegistrations('maintenance', 'فني تبريد وتكييف')">
+        <div class="category-icon maintenance-icon">❄️</div>
+        <h3>فني تبريد وتكييف</h3>
+        <p>صيانة أجهزة التبريد والتكييف</p>
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'فيتر')">
-        <div class="category-icon maintenance-icon">🔧</div>
-        <h3>فيتر</h3>
-        <p>صيانة السيارات</p>
-      </div>
-
-      <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'كهربائي')">
+           onclick="showCategoryRegistrations('maintenance', 'كهربائي سيارات')">
         <div class="category-icon maintenance-icon">⚡</div>
-        <h3>كهربائي</h3>
+        <h3>كهربائي سيارات</h3>
         <p>الأعمال الكهربائية</p>
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'تبريد وتكييف')">
-        <div class="category-icon maintenance-icon">❄️</div>
-        <h3>تبريد وتكييف</h3>
-        <p>صيانة أجهزة التبريد</p>
+           onclick="showCategoryRegistrations('maintenance', 'فيتر (ميكانيكي)')">
+        <div class="category-icon maintenance-icon">🔧</div>
+        <h3>فيتر (ميكانيكي)</h3>
+        <p>صيانة ميكانيكية</p>
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'سباك')">
-        <div class="category-icon maintenance-icon">🚰</div>
-        <h3>سباك</h3>
-        <p>أعمال السباكة</p>
+           onclick="showCategoryRegistrations('maintenance', 'حداد صدر')">
+        <div class="category-icon maintenance-icon">🔨</div>
+        <h3>حداد صدر</h3>
+        <p>أعمال الحدادة وتصليح الهيكل</p>
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('maintenance', 'تنظيف')">
-        <div class="category-icon maintenance-icon">🧹</div>
-        <h3>تنظيف</h3>
-        <p>خدمات التنظيف</p>
+           onclick="showCategoryRegistrations('maintenance', 'سمكري')">
+        <div class="category-icon maintenance-icon">🚗</div>
+        <h3>سمكري</h3>
+        <p>تصليح هياكل السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'صباغ سيارات')">
+        <div class="category-icon maintenance-icon">🎨</div>
+        <h3>صباغ سيارات</h3>
+        <p>صبغ السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'ميزان وبالنص')">
+        <div class="category-icon maintenance-icon">⚙️</div>
+        <h3>ميزان وبالنص</h3>
+        <p>ميزان السيارات والبالنص</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'تبديل زيت وفلاتر')">
+        <div class="category-icon maintenance-icon">🛢️</div>
+        <h3>تبديل زيت وفلاتر</h3>
+        <p>خدمات الزيوت والفلاتر</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'صيانة إيرباك')">
+        <div class="category-icon maintenance-icon">🛡️</div>
+        <h3>صيانة إيرباك</h3>
+        <p>صيانة الوسائد الهوائية</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'صيانة ABS')">
+        <div class="category-icon maintenance-icon">🚨</div>
+        <h3>صيانة ABS</h3>
+        <p>صيانة نظام ABS</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'بريكات (دسكات، فلنجات، سفايف)')">
+        <div class="category-icon maintenance-icon">🛞</div>
+        <h3>بريكات</h3>
+        <p>دسكات، فلنجات، سفايف</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'صيانة جير أوتوماتيك')">
+        <div class="category-icon maintenance-icon">⚙️</div>
+        <h3>صيانة جير أوتوماتيك</h3>
+        <p>صيانة نواقل الحركة</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'برمجة وفحص كمبيوتر')">
+        <div class="category-icon maintenance-icon">💻</div>
+        <h3>برمجة وفحص كمبيوتر</h3>
+        <p>فحص وبرمجة السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'بطاريات')">
+        <div class="category-icon maintenance-icon">🔋</div>
+        <h3>بطاريات</h3>
+        <p>بيع وصيانة البطاريات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'إطارات وبنجرجي')">
+        <div class="category-icon maintenance-icon">🛞</div>
+        <h3>إطارات وبنجرجي</h3>
+        <p>الإطارات وخدمات البنجرجي</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'تبديل زجاج')">
+        <div class="category-icon maintenance-icon">🪟</div>
+        <h3>تبديل زجاج</h3>
+        <p>زجاج السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'صيانة رديتر')">
+        <div class="category-icon maintenance-icon">🌡️</div>
+        <h3>صيانة رديتر</h3>
+        <p>صيانة أنظمة التبريد</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'عادم (إكزوزت)')">
+        <div class="category-icon maintenance-icon">🔧</div>
+        <h3>عادم (إكزوزت)</h3>
+        <p>أنظمة العادم</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'مفاتيح سيارات وبرمجة ريموت')">
+        <div class="category-icon maintenance-icon">🔑</div>
+        <h3>مفاتيح وبرمجة ريموت</h3>
+        <p>مفاتيح السيارات والريموت</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('maintenance', 'تلميع وحماية')">
+        <div class="category-icon maintenance-icon">✨</div>
+        <h3>تلميع وحماية</h3>
+        <p>تلميع وحماية السيارات</p>
       </div>
 
     `;
@@ -470,17 +791,38 @@ window.openCategory = function (type) {
     grid.innerHTML = `
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'سيارات')">
-        <div class="category-icon sales-icon">🚗</div>
-        <h3>سيارات</h3>
-        <p>بيع وشراء السيارات</p>
+           onclick="showCategoryRegistrations('seller', 'قطع غيار أصلية')">
+        <div class="category-icon sales-icon">🔩</div>
+        <h3>قطع غيار أصلية</h3>
+        <p>قطع غيار أصلية</p>
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'قطع غيار')">
-        <div class="category-icon sales-icon">🔩</div>
-        <h3>قطع غيار</h3>
-        <p>قطع غيار السيارات</p>
+           onclick="showCategoryRegistrations('seller', 'قطع غيار تجارية')">
+        <div class="category-icon sales-icon">🔧</div>
+        <h3>قطع غيار تجارية</h3>
+        <p>قطع غيار تجارية</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'إكسسوارات')">
+        <div class="category-icon sales-icon">🚗</div>
+        <h3>إكسسوارات</h3>
+        <p>إكسسوارات السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'زيوت')">
+        <div class="category-icon sales-icon">🛢️</div>
+        <h3>زيوت</h3>
+        <p>زيوت السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'بطاريات')">
+        <div class="category-icon sales-icon">🔋</div>
+        <h3>بطاريات</h3>
+        <p>بطاريات السيارات</p>
       </div>
 
       <div class="category-card"
@@ -491,15 +833,34 @@ window.openCategory = function (type) {
       </div>
 
       <div class="category-card"
-           onclick="showCategoryRegistrations('seller', 'بطاريات')">
-        <div class="category-icon sales-icon">🔋</div>
-        <h3>بطاريات</h3>
-        <p>بطاريات السيارات</p>
+           onclick="showCategoryRegistrations('seller', 'جنوط')">
+        <div class="category-icon sales-icon">⚙️</div>
+        <h3>جنوط</h3>
+        <p>جنوط السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'إنارة')">
+        <div class="category-icon sales-icon">💡</div>
+        <h3>إنارة</h3>
+        <p>إنارة السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'أجهزة فحص')">
+        <div class="category-icon sales-icon">💻</div>
+        <h3>أجهزة فحص</h3>
+        <p>أجهزة فحص السيارات</p>
+      </div>
+
+      <div class="category-card"
+           onclick="showCategoryRegistrations('seller', 'مكيفات سيارات')">
+        <div class="category-icon sales-icon">❄️</div>
+        <h3>مكيفات سيارات</h3>
+        <p>مكيفات وأنظمة تكييف السيارات</p>
       </div>
 
     `;
-
   }
-
 };
 });
