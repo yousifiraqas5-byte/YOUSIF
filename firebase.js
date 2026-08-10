@@ -164,3 +164,44 @@ export async function getComments(shopId) {
     return [];
   }
 }
+
+// ================================
+// ???? ??????? ????? ?????
+// ================================
+export async function getRatingStats(shopId) {
+
+  try {
+
+    const comments = await getComments(shopId);
+
+    if (!Array.isArray(comments) || comments.length === 0) {
+      return {
+        average: 0,
+        votes: 0
+      };
+    }
+
+    const total = comments.reduce((sum, item) => {
+      return sum + (Number(item.rating) || 0);
+    }, 0);
+
+    const votes = comments.length;
+    const average = total / votes;
+
+    return {
+      average: Number(average.toFixed(1)),
+      votes: votes
+    };
+
+  } catch (err) {
+
+    console.error("Failed to get rating stats:", err);
+
+    return {
+      average: 0,
+      votes: 0
+    };
+
+  }
+
+}

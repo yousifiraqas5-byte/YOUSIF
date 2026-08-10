@@ -418,3 +418,11 @@ body {
     color: #000 !important;
     transform: none !important;
 }
+.rating-summary {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff9500;
+    white-space: nowrap;
+}

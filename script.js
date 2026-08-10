@@ -4,8 +4,9 @@ import {
   saveRegistration,
   getRegistrations,
   saveComment,
-  getComments
-} from "./firebase.js";
+  getComments,
+  getRatingStats
+} from "./firebase.js?v=2";
 // Ensure DOM is ready and elements exist before attaching listeners
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
@@ -71,7 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
       registrationsContainer.innerHTML += `
         <div class="registration-card">
 
-          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
+          <h3>
+  ${r.name || r.shopName || "بدون اسم"}
+  <span class="rating-summary" id="rating-${r.id}">
+    ⭐ 0.0 (0 تقييم)
+  </span>
+</h3>
 
           <p>
             <strong>الفئة:</strong>
@@ -137,20 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
           </a>
 
           <hr>
+<h4>💬 التقييمات والتعليقات</h4>
 
-          <h4>💬 التقييمات والتعليقات</h4>
+<div
+  class="rating-summary"
+  id="rating-summary-${r.id}">
+  ⭐ 0.0 (0 تقييم)
+</div>
 
-          <div
-            class="comments-list"
-            id="comments-${r.id}">
-            جارٍ تحميل التعليقات...
-          </div>
-
-          <input
-            type="text"
-            id="name-${r.id}"
-            placeholder="اسمك">
-
+<input
+  type="text"
+  id="name-${r.id}"
+  placeholder="اسمك">
           <textarea
             id="comment-${r.id}"
             placeholder="اكتب تعليقك..."></textarea>
@@ -347,6 +351,34 @@ window.showCategoryRegistrations = async function(type, specialty) {
 
           <h4>💬 التقييمات والتعليقات</h4>
 
+<div
+  class="rating-summary"
+  id="rating-summary-${r.id}">
+  ⭐ 0.0 (0 تقييم)
+</div>
+
+<input
+  type="text"
+  id="name-${r.id}"
+  placeholder="اسمك">
+
+<textarea
+  id="comment-${r.id}"
+  placeholder="اكتب تعليقك..."></textarea>
+
+<select id="rating-${r.id}">
+  <option value="5">⭐⭐⭐⭐⭐</option>
+  <option value="4">⭐⭐⭐⭐</option>
+  <option value="3">⭐⭐⭐</option>
+  <option value="2">⭐⭐</option>
+  <option value="1">⭐</option>
+</select>
+
+<button
+  class="comment-btn"
+  onclick="sendComment('${r.id}')">
+  إرسال التقييم
+</button>
           <div
             class="comments-list"
             id="comments-${r.id}">
@@ -558,25 +590,32 @@ const ok = await saveRegistration(data);
   }
 
   // إرسال تعليق
-  window.sendComment = async function (shopId) {
+  // إرسال تعليق
+window.sendComment = async function (shopId) {
 
-    const name = document.getElementById(`name-${shopId}`).value.trim();
-    const comment = document.getElementById(`comment-${shopId}`).value.trim();
-    const rating = parseInt(document.getElementById(`rating-${shopId}`).value);
+  const name = document.getElementById(`name-${shopId}`).value.trim();
+  const comment = document.getElementById(`comment-${shopId}`).value.trim();
+  const rating = parseInt(
+    document.getElementById(`rating-${shopId}`).value
+  );
 
+  const ok = await saveComment({
+    shopId,
+    name: name || "مستخدم",
+    comment,
+    rating
+  });
 
-    const ok = await saveComment({
-      shopId,
-      name: name || "مستخدم",
-      comment,
-      rating
-    });
+  if (!ok) {
+    alert("حدث خطأ أثناء الحفظ");
+    return;
+  }
 
-    document.getElementById(`comment-${shopId}`).value = "";
-    document.getElementById(`name-${shopId}`).value = "";
+  document.getElementById(`comment-${shopId}`).value = "";
+  document.getElementById(`name-${shopId}`).value = "";
 
-    loadComments(shopId);
-  };
+  await loadComments(shopId);
+};
 
   // تحميل التعليقات
   async function loadComments(shopId) {
@@ -586,6 +625,14 @@ const ok = await saveRegistration(data);
     if (!box) return;
 
     const comments = await getComments(shopId);
+    const stats = await getRatingStats(shopId);
+const ratingBox =
+  document.getElementById(`rating-summary-${shopId}`);
+
+if (ratingBox) {
+  ratingBox.textContent =
+    `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+}
 
     if (!Array.isArray(comments) || comments.length === 0) {
       box.innerHTML = "لا توجد تعليقات";
