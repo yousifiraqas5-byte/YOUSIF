@@ -354,6 +354,7 @@ body {
     background: #ffffff !important;
     box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important;
     text-align: center;
+    position: relative;
     overflow: hidden;
 }
 
@@ -390,8 +391,7 @@ body {
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        min-height: 100vh;
-    }
+min-height: 0;    }
 
     .container {
         margin-top: 30px !important;
@@ -461,4 +461,136 @@ body {
   margin-top: 8px;
   color: #666;
   font-size: 13px;
+}
+/* ================================
+   القائمة الجانبية
+================================ */
+.menu-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #ffffff;
+    color: #333;
+
+    font-size: 26px;
+    line-height: 42px;
+
+    cursor: pointer;
+    z-index: 9999;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* القائمة */
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: -300px;
+
+    width: 280px;
+    height: 100vh;
+
+    background: #ffffff;
+
+    z-index: 10000;
+
+    padding: 70px 15px 20px;
+
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+
+    transition: right 0.3s ease;
+
+    box-sizing: border-box;
+}
+
+/* القائمة مفتوحة */
+.side-menu.active {
+    right: 0;
+}
+
+/* زر الإغلاق */
+.menu-close {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+
+    width: 40px;
+    height: 40px;
+
+    border: none;
+    background: transparent;
+
+    font-size: 30px;
+    cursor: pointer;
+}
+
+/* عنوان القائمة */
+.menu-title {
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+
+    margin-bottom: 25px;
+}
+
+/* عناصر القائمة */
+.menu-item {
+    display: block;
+
+    width: 100%;
+
+    padding: 15px;
+
+    margin-bottom: 10px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #f5f5f5;
+
+    color: #333;
+
+    font-size: 17px;
+    text-align: right;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.menu-item:hover {
+    background: #e8f7f7;
+}
+
+/* تسجيل الدخول */
+.login-item {
+    margin-top: 20px;
+}
+
+/* الخلفية الشفافة */
+.menu-overlay {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0, 0, 0, 0.35);
+
+    z-index: 9998;
+
+    display: none;
+}
+
+.menu-overlay.active {
+    display: block;
 }

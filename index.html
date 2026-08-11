@@ -262,7 +262,44 @@
 </head>
 
 <body>
+<!-- القائمة الجانبية -->
+<div id="sideMenu" class="side-menu">
+
+    <button class="menu-close" id="menuClose">×</button>
+
+    <div class="menu-title">القائمة</div>
+
+    <button class="menu-item" onclick="goToHome()">
+        🏠 الصفحة الرئيسية
+    </button>
+
+    <button class="menu-item" onclick="goToComplaints()">
+        📝 الشكاوي
+    </button>
+
+    <button class="menu-item" onclick="goToAbout()">
+        ℹ️ من نحن
+    </button>
+
+    <button class="menu-item" onclick="goToContact()">
+        📞 اتصل بنا
+    </button>
+
+    <button class="menu-item login-item" onclick="login()">
+        🔐 تسجيل الدخول
+    </button>
+
+</div>
+
+<!-- خلفية عند فتح القائمة -->
+<div id="menuOverlay" class="menu-overlay"></div>
 <div class="container">
+
+    <!-- زر القائمة -->
+    <button id="menuButton" class="menu-button" aria-label="فتح القائمة">
+        ☰
+    </button>
+
   <!-- الواجهة الرئيسية الجديدة -->
 
 <header class="app-header">
