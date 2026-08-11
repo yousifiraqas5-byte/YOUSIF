@@ -7,6 +7,9 @@ import {
   getComments,
   getRatingStats
 } from "./firebase.js?v=2";
+
+console.log("🚗 CAR SYSTEM TEST");
+
 // Ensure DOM is ready and elements exist before attaching listeners
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
@@ -491,63 +494,475 @@ const maintenanceSpecialties = [
   "مفاتيح سيارات وبرمجة ريموت",
   "تلميع وحماية"
 ];
+const sellerSpecialties = [
+  "قطع غيار سيارات",
+  "إكسسوارات سيارات",
+  "إطارات وبطاريات",
+  "زيوت وفلاتر",
+  "مكيفات سيارات",
+  "كهربائيات سيارات",
+  "أجهزة فحص وبرمجة",
+  "أنظمة صوت وشاشات سيارات",
+  "مواد تلميع وحماية",
+  "قطع ومحلات متنوعة"
+];
+// ==========================================
+// بيانات السيارات
+// ==========================================
+
+const carBrands = {
+
+  "كوري": [
+    "Hyundai - هيونداي",
+    "Kia - كيا",
+    "Genesis - جينيسس",
+    "Daewoo - دايو"
+  ],
+
+  "أمريكي": [
+    "Chevrolet - شفروليه",
+    "Dodge - دودج",
+    "GMC - جي إم سي",
+    "Ford - فورد",
+    "Jeep - جيب",
+    "Cadillac - كاديلاك",
+    "Chrysler - كرايسلر",
+    "Lincoln - لينكولن",
+    "Buick - بويك",
+    "Tesla - تسلا"
+  ],
+
+  "ياباني": [
+    "Toyota - تويوتا",
+    "Lexus - لكزس",
+    "Nissan - نيسان",
+    "Infiniti - إنفينيتي",
+    "Honda - هوندا",
+    "Mazda - مازدا",
+    "Mitsubishi - ميتسوبيشي",
+    "Subaru - سوبارو",
+    "Suzuki - سوزوكي",
+    "Isuzu - إيسوزو"
+  ],
+
+  "ألماني": [
+    "BMW - بي إم دبليو",
+    "Mercedes-Benz - مرسيدس",
+    "Audi - أودي",
+    "Volkswagen - فولكس فاغن",
+    "Porsche - بورشه",
+    "Opel - أوبل"
+  ],
+
+  "صيني": [
+    "Chery - شيري",
+    "Geely - جيلي",
+    "Changan - شانجان",
+    "MG - إم جي",
+    "Haval - هافال",
+    "BYD - بي واي دي",
+    "JAC - جاك",
+    "Great Wall - جريت وول",
+    "Jetour - جيتور",
+    "GAC - جي أي سي",
+    "BAIC - بايك",
+    "Dongfeng - دونغفنغ"
+  ],
+
+  "فرنسي": [
+    "Peugeot - بيجو",
+    "Renault - رينو",
+    "Citroën - سيتروين"
+  ],
+
+  "إيطالي": [
+    "Fiat - فيات",
+    "Alfa Romeo - ألفا روميو",
+    "Maserati - مازيراتي",
+    "Ferrari - فيراري",
+    "Lamborghini - لامبورغيني"
+  ],
+
+  "بريطاني": [
+    "Land Rover - لاند روفر",
+    "Range Rover - رينج روفر",
+    "Jaguar - جاكوار",
+    "Bentley - بنتلي",
+    "Rolls-Royce - رولز رويس",
+    "Aston Martin - أستون مارتن",
+    "Mini - ميني"
+  ]
+};
+const carModels = {
+
+  "Chevrolet - شفروليه": [
+    "Impala - إمبالا",
+    "Malibu - ماليبو",
+    "Tahoe - تاهو",
+    "Suburban - سوبربان",
+    "Silverado - سيلفرادو",
+    "Traverse - ترافرس",
+    "Equinox - إكوينوكس",
+    "Cruze - كروز",
+    "Camaro - كامارو",
+    "Corvette - كورفيت"
+  ],
+
+  "Dodge - دودج": [
+    "Charger - تشارجر",
+    "Challenger - تشالنجر",
+    "Durango - دورانجو",
+    "Journey - جورني",
+    "Ram - رام"
+  ],
+
+  "GMC - جي إم سي": [
+    "Yukon - يوكن",
+    "Yukon XL - يوكن XL",
+    "Sierra - سييرا",
+    "Terrain - تيرين",
+    "Acadia - أكاديا",
+    "Canyon - كانيون"
+  ],
+
+  "Ford - فورد": [
+    "F-150",
+    "Explorer - إكسبلورر",
+    "Expedition - إكسبديشن",
+    "Escape - إسكيب",
+    "Mustang - موستانج",
+    "Edge - إيدج",
+    "Bronco - برونكو"
+  ],
+
+  "Jeep - جيب": [
+    "Grand Cherokee - جراند شيروكي",
+    "Wrangler - رانجلر",
+    "Cherokee - شيروكي",
+    "Compass - كومباس",
+    "Renegade - رينيجيد",
+    "Gladiator - جلادياتور"
+  ],
+
+  "Hyundai - هيونداي": [
+    "Elantra - إلنترا",
+    "Sonata - سوناتا",
+    "Accent - أكسنت",
+    "Tucson - توسان",
+    "Santa Fe - سانتا في",
+    "Palisade - باليسيد",
+    "Kona - كونا",
+    "Azera - أزيرا"
+  ],
+
+  "Kia - كيا": [
+    "Cerato - سيراتو",
+    "K5 - كي 5",
+    "Optima - أوبتيما",
+    "Sportage - سبورتاج",
+    "Sorento - سورينتو",
+    "Telluride - تيلورايد",
+    "Seltos - سيلتوس",
+    "Rio - ريو"
+  ],
+
+  "Toyota - تويوتا": [
+    "Camry - كامري",
+    "Corolla - كورولا",
+    "Land Cruiser - لاندكروزر",
+    "Prado - برادو",
+    "Hilux - هايلوكس",
+    "RAV4 - راف فور",
+    "Yaris - يارس",
+    "Avalon - أفالون",
+    "Fortuner - فورتشنر"
+  ],
+
+  "Nissan - نيسان": [
+    "Altima - ألتيما",
+    "Maxima - ماكسيما",
+    "Sentra - سنترا",
+    "Patrol - باترول",
+    "X-Trail - إكس تريل",
+    "Pathfinder - باثفايندر",
+    "Kicks - كيكس",
+    "370Z"
+  ],
+
+  "Honda - هوندا": [
+    "Civic - سيفيك",
+    "Accord - أكورد",
+    "CR-V",
+    "Pilot - بايلوت",
+    "HR-V",
+    "Odyssey - أوديسي"
+  ],
+
+  "BMW - بي إم دبليو": [
+    "3 Series",
+    "5 Series",
+    "7 Series",
+    "X1",
+    "X3",
+    "X5",
+    "X6",
+    "X7"
+  ],
+
+  "Mercedes-Benz - مرسيدس": [
+    "C-Class",
+    "E-Class",
+    "S-Class",
+    "A-Class",
+    "GLC",
+    "GLE",
+    "GLS",
+    "G-Class"
+  ],
+
+  "Audi - أودي": [
+    "A3",
+    "A4",
+    "A6",
+    "A8",
+    "Q3",
+    "Q5",
+    "Q7",
+    "Q8"
+  ]
+};
+const carYears = [];
+
+for (let year = 2026; year >= 1990; year--) {
+  carYears.push(String(year));
+}
+console.log("🚗 CAR SYSTEM LOADED");
+// ==========================================
+// تشغيل اختيار منشأ → شركة → موديل → سنة
+// ==========================================
+console.log("🚗 carOriginOptions:", document.getElementById("carOriginOptions"));
+console.log("🚗 carOriginGroup:", document.getElementById("carOriginGroup"));
+const carOriginOptions = document.getElementById("carOriginOptions");
+const carBrandGroup = document.getElementById("carBrandGroup");
+const carBrandOptions = document.getElementById("carBrandOptions");
+
+const carModelGroup = document.getElementById("carModelGroup");
+const carModelOptions = document.getElementById("carModelOptions");
+
+const carYearGroup = document.getElementById("carYearGroup");
+const carYearOptions = document.getElementById("carYearOptions");
 
 
+// عند اختيار منشأ السيارات
+if (carOriginOptions) {
+
+  carOriginOptions.addEventListener("change", function () {
+
+    const selectedOrigins = Array.from(
+      document.querySelectorAll('input[name="carOrigins"]:checked')
+    ).map(input => input.value);
+
+    // تنظيف الشركات والموديلات والسنوات
+    carBrandOptions.innerHTML = "";
+    carModelOptions.innerHTML = "";
+    carYearOptions.innerHTML = "";
+
+    carModelGroup.style.display = "none";
+    carYearGroup.style.display = "none";
+
+    if (selectedOrigins.length === 0) {
+      carBrandGroup.style.display = "none";
+      return;
+    }
+
+    // جمع الشركات الخاصة بكل المناشئ المختارة
+    let brands = [];
+
+    selectedOrigins.forEach(origin => {
+
+      if (carBrands[origin]) {
+        brands.push(...carBrands[origin]);
+      }
+
+    });
+
+    // إزالة التكرار
+    brands = [...new Set(brands)];
+
+    // إنشاء مربعات الشركات
+    brands.forEach(brand => {
+
+      const label = document.createElement("label");
+
+      label.className = "specialty-checkbox";
+
+      label.innerHTML = `
+        <input
+          type="checkbox"
+          name="carBrands"
+          value="${brand}"
+        >
+        <span>${brand}</span>
+      `;
+
+      carBrandOptions.appendChild(label);
+
+    });
+
+    carBrandGroup.style.display = "block";
+  });
+}
+
+
+// عند اختيار الشركات
+if (carBrandOptions) {
+
+  carBrandOptions.addEventListener("change", function () {
+
+    const selectedBrands = Array.from(
+      document.querySelectorAll('input[name="carBrands"]:checked')
+    ).map(input => input.value);
+
+    carModelOptions.innerHTML = "";
+    carYearOptions.innerHTML = "";
+
+    carYearGroup.style.display = "none";
+
+    if (selectedBrands.length === 0) {
+      carModelGroup.style.display = "none";
+      return;
+    }
+
+    let models = [];
+
+    selectedBrands.forEach(brand => {
+
+      if (carModels[brand]) {
+        models.push(...carModels[brand]);
+      }
+
+    });
+
+    models = [...new Set(models)];
+
+    models.forEach(model => {
+
+      const label = document.createElement("label");
+
+      label.className = "specialty-checkbox";
+
+      label.innerHTML = `
+        <input
+          type="checkbox"
+          name="carModels"
+          value="${model}"
+        >
+        <span>${model}</span>
+      `;
+
+      carModelOptions.appendChild(label);
+
+    });
+
+    carModelGroup.style.display = "block";
+  });
+}
+
+
+// عند اختيار الموديلات
+if (carModelOptions) {
+
+  carModelOptions.addEventListener("change", function () {
+
+    const selectedModels = Array.from(
+      document.querySelectorAll('input[name="carModels"]:checked')
+    );
+
+    carYearOptions.innerHTML = "";
+
+    if (selectedModels.length === 0) {
+      carYearGroup.style.display = "none";
+      return;
+    }
+
+    carYears.forEach(year => {
+
+      const label = document.createElement("label");
+
+      label.className = "specialty-checkbox";
+
+      label.innerHTML = `
+        <input
+          type="checkbox"
+          name="carYears"
+          value="${year}"
+        >
+        <span>${year}</span>
+      `;
+
+      carYearOptions.appendChild(label);
+
+    });
+
+    carYearGroup.style.display = "block";
+  });
+}
 const regTypeSelect = document.getElementById("regType");
 const specialtyGroup = document.getElementById("specialtyGroup");
-const specialtySelect = document.getElementById("specialty");
+const specialtyOptions = document.getElementById("specialtyOptions");
 
-if (regTypeSelect && specialtyGroup && specialtySelect) {
+if (regTypeSelect && specialtyGroup && specialtyOptions) {
 
   regTypeSelect.addEventListener("change", function () {
 
     const type = this.value;
 
-    specialtySelect.innerHTML =
-      '<option value="">اختر التخصص</option>';
+    specialtyOptions.innerHTML = "";
+
+    let specialties = [];
 
     if (type === "maintenance") {
 
-      maintenanceSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
-
-      specialtyGroup.style.display = "block";
+      specialties = maintenanceSpecialties;
 
     } else if (type === "seller") {
 
-      sellerSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
-
-      specialtyGroup.style.display = "block";
+      specialties = sellerSpecialties;
 
     } else if (type === "both") {
 
-      const allSpecialties = [
+      specialties = [
         ...maintenanceSpecialties,
         ...sellerSpecialties
       ];
 
-      allSpecialties.forEach(item => {
-        specialtySelect.innerHTML +=
-          `<option value="${item}">${item}</option>`;
-      });
-
-      specialtyGroup.style.display = "block";
-
     } else {
 
       specialtyGroup.style.display = "none";
-      specialtySelect.value = "";
-
+      return;
     }
 
-  });
+    specialties.forEach(item => {
 
+      const label = document.createElement("label");
+      label.className = "specialty-checkbox";
+
+      label.innerHTML = `
+        <input
+          type="checkbox"
+          name="specialties"
+          value="${item}"
+        >
+        <span>${item}</span>
+      `;
+
+      specialtyOptions.appendChild(label);
+    });
+
+    specialtyGroup.style.display = "block";
+  });
 }
+    
   // إغلاق نافذة التسجيل
   window.closeModal = function () {
     const el = document.getElementById("registrationModal");
@@ -568,8 +983,9 @@ const data = {
   city: document.getElementById("city")?.value || "",
   region: document.getElementById("region")?.value || "",
   regType: document.getElementById("regType")?.value || "",
-  specialty: document.getElementById("specialty")?.value || "",
-  workDays: document.getElementById("workDays")?.value || "",
+specialty: Array.from(
+  document.querySelectorAll('input[name="specialties"]:checked')
+).map(input => input.value),  workDays: document.getElementById("workDays")?.value || "",
   workHours: document.getElementById("workHours")?.value || "",
   mapLocation: document.getElementById("mapLocation")?.value || "",
   description: document.getElementById("description")?.value || ""
@@ -598,19 +1014,22 @@ window.sendComment = async function (shopId) {
   const rating = parseInt(
     document.getElementById(`rating-${shopId}`).value
   );
+const ok = await saveComment({
+  shopId,
+  name: name || "مستخدم",
+  comment,
+  rating
+});
 
-  const ok = await saveComment({
-    shopId,
-    name: name || "مستخدم",
-    comment,
-    rating
-  });
+if (ok === "already-rated") {
+  alert("لقد قيّمت هذا المحل مسبقًا ⭐");
+  return;
+}
 
-  if (!ok) {
-    alert("حدث خطأ أثناء الحفظ");
-    return;
-  }
-
+if (!ok) {
+  alert("حدث خطأ أثناء الحفظ");
+  return;
+}
   document.getElementById(`comment-${shopId}`).value = "";
   document.getElementById(`name-${shopId}`).value = "";
 
@@ -640,20 +1059,28 @@ if (ratingBox) {
     }
 
     box.innerHTML = "";
+// تحميل إحصائية التقييم فقط
+async function loadComments(shopId) {
 
-    comments.forEach(c => {
+  const box = document.getElementById(`comments-${shopId}`);
 
-      box.innerHTML += `
-      <div class="comment-card">
-        <strong>${c.name}</strong><br>
-        <span>${"⭐".repeat(c.rating)}</span>
-        <p>${c.comment}</p>
-        <hr>
-      </div>
-    `;
+  const ratingBox =
+    document.getElementById(`rating-summary-${shopId}`);
 
-    });
+  if (!ratingBox) return;
 
+  const comments = await getComments(shopId);
+  const stats = await getRatingStats(shopId);
+
+  ratingBox.textContent =
+    `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+
+  // إخفاء قائمة التعليقات الفردية
+  if (box) {
+    box.innerHTML = "";
+    box.style.display = "none";
+  }
+}
   }
 
 
@@ -663,12 +1090,119 @@ if (ratingBox) {
 // ================================
 // فتح قسم الصيانة أو المبيعات
 // ================================
+// ==========================================
+// حساب عدد المحلات لكل فئة وتخصص
+// ==========================================
+async function updateCategoryCounts(type) {
+  try {
+    const regs = await getRegistrations();
 
+    // عدد جميع المحلات ضمن القسم
+    const totalCount = regs.filter(r =>
+      r.regType === type || r.regType === "both"
+    ).length;
+
+    // تحديث عنوان القسم
+    const title = document.querySelector(".section-title");
+
+    if (title) {
+      const titleText =
+        type === "maintenance"
+          ? "🔧 خدمات الصيانة"
+          : "🛒 فئات المبيعات";
+
+      title.innerHTML = `
+        ${titleText}
+        <span class="main-category-count">${totalCount}</span>
+      `;
+    }
+
+    // تحديث عدد المحلات لكل تخصص
+    const cards = document.querySelectorAll(".category-card");
+
+cards.forEach(card => {
+
+  const onclick = card.getAttribute("onclick") || "";
+
+  // استخراج اسم التخصص من showCategoryRegistrations
+  const match = onclick.match(
+    /showCategoryRegistrations\(\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/
+  );
+
+  if (!match) return;
+
+  const specialty = match[1];
+
+  const count = regs.filter(r =>
+    (r.regType === type || r.regType === "both") &&
+    (r.specialty || "").trim() === specialty.trim()
+  ).length;
+
+  let countElement =
+    card.querySelector(".category-count");
+
+  if (!countElement) {
+    countElement = document.createElement("span");
+    countElement.className = "category-count";
+
+    const heading = card.querySelector("h3");
+
+    if (heading) {
+      heading.appendChild(document.createTextNode(" "));
+      heading.appendChild(countElement);
+    }
+  }
+
+  countElement.textContent = count;
+});
+  } catch (error) {
+    console.error("updateCategoryCounts error:", error);
+  }
+}
 window.openCategory = function (type) {
 
   const title = document.querySelector(".section-title");
   const grid = document.querySelector(".category-grid");
+const backButton = document.getElementById("backToHome");
 
+if (backButton) {
+  backButton.style.display = "block";
+
+  backButton.onclick = function () {
+    title.textContent = "الأقسام";
+
+    grid.innerHTML = `
+      <div
+        class="category-card"
+        onclick="openCategory('maintenance')"
+      >
+        <div class="category-icon maintenance-icon">
+          🔧
+        </div>
+        <h3>الصيانة</h3>
+        <p>خدمات الصيانة والإصلاح</p>
+      </div>
+
+      <div
+        class="category-card"
+        onclick="openCategory('seller')"
+      >
+        <div class="category-icon sales-icon">
+          🛒
+        </div>
+        <h3>المبيعات</h3>
+        <p>المحلات والبائعين</p>
+      </div>
+    `;
+
+    backButton.style.display = "none";
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+}
   if (!title || !grid) {
     console.error("category elements not found");
     return;
@@ -896,9 +1430,13 @@ window.openCategory = function (type) {
         <div class="category-icon sales-icon">❄️</div>
         <h3>مكيفات سيارات</h3>
         <p>مكيفات وأنظمة تكييف السيارات</p>
-      </div>
+        </div>
 
-    `;
-  }
+`;
+
+}
+
+updateCategoryCounts(type);
+
 };
 });

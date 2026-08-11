@@ -315,7 +315,9 @@
 <!-- الأقسام -->
 
 <h2 class="section-title">الأقسام</h2>
-
+<button id="backToHome" class="back-to-home" style="display:none;">
+  ← رجوع للأقسام
+</button>
 <div class="category-grid">
 
   <!-- الصيانة -->
@@ -473,11 +475,13 @@
   </select>
 </div>
 <div class="form-group" id="specialtyGroup" style="display: none;">
-  <label for="specialty">🛠️ التخصص:</label>
+  <label>🛠️ التخصصات:</label>
 
-  <select id="specialty" name="specialty">
-    <option value="">اختر التخصص</option>
-  </select>
+  <div id="specialtyOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    ☑️ يمكنك اختيار أكثر من تخصص
+  </small>
 </div>
 <div class="form-group">
   <label for="workDays">📅 أيام الدوام:</label>
@@ -513,20 +517,116 @@
     name="description"
     placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
 </div>
+<!-- ============================= -->
+<!-- معلومات السيارات -->
+<!-- ============================= -->
 
+<div class="form-group" id="carOriginGroup">
+
+  <label>🚗 منشأ السيارات:</label>
+
+  <div id="carOriginOptions" class="specialty-options">
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="كوري">
+      <span>🇰🇷 كوري</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="أمريكي">
+      <span>🇺🇸 أمريكي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="ياباني">
+      <span>🇯🇵 ياباني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="ألماني">
+      <span>🇩🇪 ألماني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="صيني">
+      <span>🇨🇳 صيني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="فرنسي">
+      <span>🇫🇷 فرنسي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="إيطالي">
+      <span>🇮🇹 إيطالي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="بريطاني">
+      <span>🇬🇧 بريطاني</span>
+    </label>
+
+  </div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من منشأ
+  </small>
+
+</div>
+
+<div class="form-group" id="carBrandGroup" style="display: none;">
+
+  <label>🏷️ شركات السيارات:</label>
+
+  <div id="carBrandOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من شركة
+  </small>
+
+</div>
+
+<div class="form-group" id="carModelGroup" style="display: none;">
+
+  <label>🚘 موديلات السيارات:</label>
+
+  <div id="carModelOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من موديل
+  </small>
+
+</div>
+
+<div class="form-group" id="carYearGroup" style="display: none;">
+
+  <label>📅 سنوات الموديلات:</label>
+
+  <div id="carYearOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من سنة
+  </small>
+
+</div>
+ 
 <button type="submit" class="btn-submit">
   ✅ تسجيل المحل
 </button>
-      </form>
-    </div>
-  </div>
 
-  <div class="container">
+</form>
+
+</div>
+</div>
+
+<div class="container">
+
     <div id="registrationsList" class="registrations-container">
       <!-- هنا ستُعرض قائمة المحلات تلقائياً -->
     </div>
   </div>
 
 <script type="module" src="script.js"></script>
-</body>
-</html>
+
+  س
