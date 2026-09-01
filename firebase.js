@@ -31,9 +31,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// وعد يتحقق لما تكتمل عملية تسجيل الدخول المجهول، عشان نقدر نعرف هوية المستخدم قبل حفظ أي تقييم
+let resolveAuthReady;
+const authReady = new Promise((resolve) => {
+  resolveAuthReady = resolve;
+});
+
 // تسجيل مجهول تلقائي للمستخدم لتمكين الكتابة من المتصفح (تأكد أن Anonymous مفعل في Console)
 signInAnonymously(auth).catch((err) => {
   console.warn('Anonymous sign-in failed:', err);
+  resolveAuthReady(null);
 });
 
 onAuthStateChanged(auth, (user) => {
@@ -42,7 +49,15 @@ onAuthStateChanged(auth, (user) => {
   } else {
     console.log('Firebase auth: signed out');
   }
+  resolveAuthReady(user);
 });
+
+// إرجاع هوية المستخدم الحالي (تنتظر اكتمال تسجيل الدخول المجهول إذا لم يكتمل بعد)
+async function getCurrentUid() {
+  if (auth.currentUser) return auth.currentUser.uid;
+  const user = await authReady;
+  return user ? user.uid : null;
+}
 
 const db = getFirestore(app);
 
@@ -124,8 +139,24 @@ return regs;
 
 export async function saveComment(data) {
   try {
+    const uid = await getCurrentUid();
+
+    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل
+    if (uid && data.shopId) {
+      const dupQuery = query(
+        collection(db, "comments"),
+        where("shopId", "==", data.shopId),
+        where("uid", "==", uid)
+      );
+      const dupSnapshot = await getDocs(dupQuery);
+      if (!dupSnapshot.empty) {
+        return "already-rated";
+      }
+    }
+
     const ref = await addDoc(collection(db, "comments"), {
       ...data,
+      uid: uid || null,
       createdAt: serverTimestamp()
     });
 
@@ -166,7 +197,7 @@ export async function getComments(shopId) {
 }
 
 // ================================
-// ???? ??????? ????? ?????
+// دوال إحصائية التقييم
 // ================================
 export async function getRatingStats(shopId) {
 

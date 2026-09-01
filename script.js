@@ -6,7 +6,7 @@ import {
   saveComment,
   getComments,
   getRatingStats
-} from "./firebase.js?v=2";
+} from "./firebase.js?v=3";
 
 console.log("🚗 CAR SYSTEM TEST");
 
@@ -46,38 +46,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load and render registrations so everyone visiting the page sees the registered shops
   const registrationsContainer = document.getElementById('registrationsList');
-    async function loadRegistrations() {
-  if (!registrationsContainer) return;
 
-  registrationsContainer.innerHTML = "جارٍ تحميل المحلات...";
+  async function loadRegistrations() {
+    if (!registrationsContainer) return;
 
-  try {
-    const regs = await getRegistrations();
+    registrationsContainer.innerHTML = "جارٍ تحميل المحلات...";
 
-    if (!Array.isArray(regs) || regs.length === 0) {
-      registrationsContainer.innerHTML =
-        "لا توجد محلات مسجلة حتى الآن";
-      return;
-    }
+    try {
+      const regs = await getRegistrations();
 
-    registrationsContainer.innerHTML = "";
+      if (!Array.isArray(regs) || regs.length === 0) {
+        registrationsContainer.innerHTML =
+          "لا توجد محلات مسجلة حتى الآن";
+        return;
+      }
 
-    regs.forEach(r => {
-      const typeLabel =
-        r.regType === "seller"
-          ? "🛒 بيع"
-          : r.regType === "maintenance"
-          ? "🔧 صيانة"
-          : r.regType === "both"
-          ? "🔧🛒 صيانة + بيع"
-          : r.regType || "";
+      registrationsContainer.innerHTML = "";
 
-      registrationsContainer.innerHTML += `
+      regs.forEach(r => {
+        const typeLabel =
+          r.regType === "seller"
+            ? "🛒 بيع"
+            : r.regType === "maintenance"
+              ? "🔧 صيانة"
+              : r.regType === "both"
+                ? "🔧🛒 صيانة + بيع"
+                : r.regType || "";
+
+        registrationsContainer.innerHTML += `
         <div class="registration-card">
 
           <h3>
   ${r.name || r.shopName || "بدون اسم"}
-  <span class="rating-summary" id="rating-${r.id}">
+  <span class="rating-summary" id="rating-badge-${r.id}">
     ⭐ 0.0 (0 تقييم)
   </span>
 </h3>
@@ -86,12 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <strong>الفئة:</strong>
             ${typeLabel}
           </p>
-
-          <p>
-            <strong>التخصص:</strong>
-            ${r.specialty || "غير محدد"}
-          </p>
-
+<p>
+  <strong>التخصصات:</strong>
+  ${Array.isArray(r.specialties)
+            ? r.specialties.join("، ")
+            : (r.specialty || "غير محدد")
+          }
+</p>
           <p>
             <strong>المحافظة:</strong>
             ${r.city || ""}
@@ -117,9 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ${r.workHours || "غير محدد"}
           </p>
 
-          ${
-            r.mapLocation
-              ? `
+          ${r.mapLocation
+            ? `
                 <p>
                   <strong>🗺️ الموقع:</strong>
                   <a href="${r.mapLocation}" target="_blank">
@@ -127,18 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
                   </a>
                 </p>
               `
-              : ""
+            : ""
           }
 
-          ${
-            r.description
-              ? `
+          ${r.description
+            ? `
                 <p>
                   <strong>📝 الوصف:</strong>
                   ${r.description}
                 </p>
               `
-              : ""
+            : ""
           }
 
           <a href="tel:${r.phone || ""}">
@@ -179,19 +179,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      loadComments(r.id);
-    });
+        loadComments(r.id);
+      });
 
-  } catch (err) {
-    console.error("loadRegistrations error:", err);
+    } catch (err) {
+      console.error("loadRegistrations error:", err);
 
-    registrationsContainer.innerHTML = `
+      registrationsContainer.innerHTML = `
       <div class="no-registrations">
         حدث خطأ أثناء جلب المحلات
       </div>
     `;
+    }
   }
-}
+
+  // جعل loadRegistrations متاحة لباقي أجزاء البرنامج
+  window.loadRegistrations = loadRegistrations;
+
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -225,220 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('shopForm not found — skipping shop form handlers');
   }
 
-  // Load shops if list exists
-  loadShops();
-  // ================================
-// فلترة التسجيلات حسب القسم والتخصص
-// ================================
-
-window.showCategoryRegistrations = async function(type, specialty) {
-
-  const container = document.getElementById("registrationsList");
-
-  if (!container) return;
-
-  container.style.display = "block";
-  container.innerHTML = "جارٍ تحميل النتائج...";
-
-  try {
-
-    const regs = await getRegistrations();
-
-    const filtered = regs.filter(r => {
-
-      const sameType =
-        r.regType === type ||
-        r.regType === "both";
-
-      const sameSpecialty =
-        !specialty ||
-        (r.specialty || "").trim() === specialty.trim();
-
-      return sameType && sameSpecialty;
-    });
-
-    if (filtered.length === 0) {
-
-      container.innerHTML = `
-        <div class="no-registrations">
-          لا توجد نتائج مسجلة في هذه الفئة حتى الآن
-        </div>
-      `;
-
-      return;
-    }
-
-    container.innerHTML = "";
-
-    filtered.forEach(r => {
-
-      const typeLabel =
-        r.regType === "seller"
-          ? "🛒 بيع"
-          : r.regType === "maintenance"
-          ? "🔧 صيانة"
-          : r.regType === "both"
-          ? "🔧🛒 صيانة + بيع"
-          : r.regType || "";
-
-      container.innerHTML += `
-
-        <div class="registration-card">
-
-          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
-
-          <p>
-            <strong>الفئة:</strong>
-            ${typeLabel}
-          </p>
-
-          <p>
-            <strong>التخصص:</strong>
-            ${r.specialty || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>المحافظة:</strong>
-            ${r.city || ""}
-          </p>
-
-          <p>
-            <strong>المنطقة:</strong>
-            ${r.region || ""}
-          </p>
-
-          <p>
-            <strong>الهاتف:</strong>
-            ${r.phone || ""}
-          </p>
-
-          <p>
-            <strong>أيام الدوام:</strong>
-            ${r.workDays || "غير محدد"}
-          </p>
-
-          <p>
-            <strong>أوقات الدوام:</strong>
-            ${r.workHours || "غير محدد"}
-          </p>
-
-          ${
-            r.mapLocation
-              ? `
-                <p>
-                  <strong>🗺️ الموقع:</strong>
-                  <a href="${r.mapLocation}" target="_blank">
-                    فتح الموقع على الخريطة 📍
-                  </a>
-                </p>
-              `
-              : ""
-          }
-
-          ${
-            r.description
-              ? `
-                <p>
-                  <strong>📝 الوصف:</strong>
-                  ${r.description}
-                </p>
-              `
-              : ""
-          }
-
-          <a href="tel:${r.phone || ""}">
-            <button>📞 اتصال</button>
-          </a>
-
-          <hr>
-
-          <h4>💬 التقييمات والتعليقات</h4>
-
-<div
-  class="rating-summary"
-  id="rating-summary-${r.id}">
-  ⭐ 0.0 (0 تقييم)
-</div>
-
-<input
-  type="text"
-  id="name-${r.id}"
-  placeholder="اسمك">
-
-<textarea
-  id="comment-${r.id}"
-  placeholder="اكتب تعليقك..."></textarea>
-
-<select id="rating-${r.id}">
-  <option value="5">⭐⭐⭐⭐⭐</option>
-  <option value="4">⭐⭐⭐⭐</option>
-  <option value="3">⭐⭐⭐</option>
-  <option value="2">⭐⭐</option>
-  <option value="1">⭐</option>
-</select>
-
-<button
-  class="comment-btn"
-  onclick="sendComment('${r.id}')">
-  إرسال التقييم
-</button>
-          <div
-            class="comments-list"
-            id="comments-${r.id}">
-            جارٍ تحميل التعليقات...
-          </div>
-
-          <input
-            type="text"
-            id="name-${r.id}"
-            placeholder="اسمك">
-
-          <textarea
-            id="comment-${r.id}"
-            placeholder="اكتب تعليقك..."></textarea>
-
-          <select id="rating-${r.id}">
-            <option value="5">⭐⭐⭐⭐⭐</option>
-            <option value="4">⭐⭐⭐⭐</option>
-            <option value="3">⭐⭐⭐</option>
-            <option value="2">⭐⭐</option>
-            <option value="1">⭐</option>
-          </select>
-
-          <button
-            class="comment-btn"
-            onclick="sendComment('${r.id}')">
-            إرسال التقييم
-          </button>
-
-        </div>
-
-      `;
-
-      loadComments(r.id);
-
-    });
-
-    container.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-  } catch (err) {
-
-    console.error(
-      "showCategoryRegistrations error:",
-      err
-    );
-
-    container.innerHTML = `
-      <div class="no-registrations">
-        حدث خطأ أثناء جلب النتائج
-      </div>
-    `;
-  }
-
-};
 
   // Load registrations so all visitors see them
   loadRegistrations();
@@ -457,7 +247,7 @@ window.showCategoryRegistrations = async function(type, specialty) {
   };
 
   // اختيار بائع أو صيانة
-  window.selectRegistrationType = function(type) {
+  window.selectRegistrationType = function (type) {
     const typeEl = document.getElementById("typeModal");
     if (typeEl) typeEl.classList.remove("active");
 
@@ -469,334 +259,334 @@ window.showCategoryRegistrations = async function(type, specialty) {
     const regModal = document.getElementById("registrationModal");
     if (regModal) regModal.classList.add("active");
   };
-// ================================
-// قائمة تخصصات الصيانة والبيع
-// ================================
-const maintenanceSpecialties = [
-  "فني تبريد وتكييف",
-  "كهربائي سيارات",
-  "فيتر (ميكانيكي)",
-  "حداد صدر",
-  "سمكري",
-  "صباغ سيارات",
-  "ميزان وبالنص",
-  "تبديل زيت وفلاتر",
-  "صيانة إيرباك",
-  "صيانة ABS",
-  "بريكات (دسكات، فلنجات، سفايف)",
-  "صيانة جير أوتوماتيك",
-  "برمجة وفحص كمبيوتر",
-  "بطاريات",
-  "إطارات وبنجرجي",
-  "تبديل زجاج",
-  "صيانة رديتر",
-  "عادم (إكزوزت)",
-  "مفاتيح سيارات وبرمجة ريموت",
-  "تلميع وحماية"
-];
-const sellerSpecialties = [
-  "قطع غيار سيارات",
-  "إكسسوارات سيارات",
-  "إطارات وبطاريات",
-  "زيوت وفلاتر",
-  "مكيفات سيارات",
-  "كهربائيات سيارات",
-  "أجهزة فحص وبرمجة",
-  "أنظمة صوت وشاشات سيارات",
-  "مواد تلميع وحماية",
-  "قطع ومحلات متنوعة"
-];
-// ==========================================
-// بيانات السيارات
-// ==========================================
+  // ================================
+  // قائمة تخصصات الصيانة والبيع
+  // ================================
+  const maintenanceSpecialties = [
+    "فني تبريد وتكييف",
+    "كهربائي سيارات",
+    "فيتر (ميكانيكي)",
+    "حداد صدر",
+    "سمكري",
+    "صباغ سيارات",
+    "ميزان وبالنص",
+    "تبديل زيت وفلاتر",
+    "صيانة إيرباك",
+    "صيانة ABS",
+    "بريكات (دسكات، فلنجات، سفايف)",
+    "صيانة جير أوتوماتيك",
+    "برمجة وفحص كمبيوتر",
+    "بطاريات",
+    "إطارات وبنجرجي",
+    "تبديل زجاج",
+    "صيانة رديتر",
+    "عادم (إكزوزت)",
+    "مفاتيح سيارات وبرمجة ريموت",
+    "تلميع وحماية"
+  ];
+  const sellerSpecialties = [
+    "قطع غيار سيارات",
+    "إكسسوارات سيارات",
+    "إطارات وبطاريات",
+    "زيوت وفلاتر",
+    "مكيفات سيارات",
+    "كهربائيات سيارات",
+    "أجهزة فحص وبرمجة",
+    "أنظمة صوت وشاشات سيارات",
+    "مواد تلميع وحماية",
+    "قطع ومحلات متنوعة"
+  ];
+  // ==========================================
+  // بيانات السيارات
+  // ==========================================
 
-const carBrands = {
+  const carBrands = {
 
-  "كوري": [
-    "Hyundai - هيونداي",
-    "Kia - كيا",
-    "Genesis - جينيسس",
-    "Daewoo - دايو"
-  ],
+    "كوري": [
+      "Hyundai - هيونداي",
+      "Kia - كيا",
+      "Genesis - جينيسس",
+      "Daewoo - دايو"
+    ],
 
-  "أمريكي": [
-    "Chevrolet - شفروليه",
-    "Dodge - دودج",
-    "GMC - جي إم سي",
-    "Ford - فورد",
-    "Jeep - جيب",
-    "Cadillac - كاديلاك",
-    "Chrysler - كرايسلر",
-    "Lincoln - لينكولن",
-    "Buick - بويك",
-    "Tesla - تسلا"
-  ],
+    "أمريكي": [
+      "Chevrolet - شفروليه",
+      "Dodge - دودج",
+      "GMC - جي إم سي",
+      "Ford - فورد",
+      "Jeep - جيب",
+      "Cadillac - كاديلاك",
+      "Chrysler - كرايسلر",
+      "Lincoln - لينكولن",
+      "Buick - بويك",
+      "Tesla - تسلا"
+    ],
 
-  "ياباني": [
-    "Toyota - تويوتا",
-    "Lexus - لكزس",
-    "Nissan - نيسان",
-    "Infiniti - إنفينيتي",
-    "Honda - هوندا",
-    "Mazda - مازدا",
-    "Mitsubishi - ميتسوبيشي",
-    "Subaru - سوبارو",
-    "Suzuki - سوزوكي",
-    "Isuzu - إيسوزو"
-  ],
+    "ياباني": [
+      "Toyota - تويوتا",
+      "Lexus - لكزس",
+      "Nissan - نيسان",
+      "Infiniti - إنفينيتي",
+      "Honda - هوندا",
+      "Mazda - مازدا",
+      "Mitsubishi - ميتسوبيشي",
+      "Subaru - سوبارو",
+      "Suzuki - سوزوكي",
+      "Isuzu - إيسوزو"
+    ],
 
-  "ألماني": [
-    "BMW - بي إم دبليو",
-    "Mercedes-Benz - مرسيدس",
-    "Audi - أودي",
-    "Volkswagen - فولكس فاغن",
-    "Porsche - بورشه",
-    "Opel - أوبل"
-  ],
+    "ألماني": [
+      "BMW - بي إم دبليو",
+      "Mercedes-Benz - مرسيدس",
+      "Audi - أودي",
+      "Volkswagen - فولكس فاغن",
+      "Porsche - بورشه",
+      "Opel - أوبل"
+    ],
 
-  "صيني": [
-    "Chery - شيري",
-    "Geely - جيلي",
-    "Changan - شانجان",
-    "MG - إم جي",
-    "Haval - هافال",
-    "BYD - بي واي دي",
-    "JAC - جاك",
-    "Great Wall - جريت وول",
-    "Jetour - جيتور",
-    "GAC - جي أي سي",
-    "BAIC - بايك",
-    "Dongfeng - دونغفنغ"
-  ],
+    "صيني": [
+      "Chery - شيري",
+      "Geely - جيلي",
+      "Changan - شانجان",
+      "MG - إم جي",
+      "Haval - هافال",
+      "BYD - بي واي دي",
+      "JAC - جاك",
+      "Great Wall - جريت وول",
+      "Jetour - جيتور",
+      "GAC - جي أي سي",
+      "BAIC - بايك",
+      "Dongfeng - دونغفنغ"
+    ],
 
-  "فرنسي": [
-    "Peugeot - بيجو",
-    "Renault - رينو",
-    "Citroën - سيتروين"
-  ],
+    "فرنسي": [
+      "Peugeot - بيجو",
+      "Renault - رينو",
+      "Citroën - سيتروين"
+    ],
 
-  "إيطالي": [
-    "Fiat - فيات",
-    "Alfa Romeo - ألفا روميو",
-    "Maserati - مازيراتي",
-    "Ferrari - فيراري",
-    "Lamborghini - لامبورغيني"
-  ],
+    "إيطالي": [
+      "Fiat - فيات",
+      "Alfa Romeo - ألفا روميو",
+      "Maserati - مازيراتي",
+      "Ferrari - فيراري",
+      "Lamborghini - لامبورغيني"
+    ],
 
-  "بريطاني": [
-    "Land Rover - لاند روفر",
-    "Range Rover - رينج روفر",
-    "Jaguar - جاكوار",
-    "Bentley - بنتلي",
-    "Rolls-Royce - رولز رويس",
-    "Aston Martin - أستون مارتن",
-    "Mini - ميني"
-  ]
-};
-const carModels = {
+    "بريطاني": [
+      "Land Rover - لاند روفر",
+      "Range Rover - رينج روفر",
+      "Jaguar - جاكوار",
+      "Bentley - بنتلي",
+      "Rolls-Royce - رولز رويس",
+      "Aston Martin - أستون مارتن",
+      "Mini - ميني"
+    ]
+  };
+  const carModels = {
 
-  "Chevrolet - شفروليه": [
-    "Impala - إمبالا",
-    "Malibu - ماليبو",
-    "Tahoe - تاهو",
-    "Suburban - سوبربان",
-    "Silverado - سيلفرادو",
-    "Traverse - ترافرس",
-    "Equinox - إكوينوكس",
-    "Cruze - كروز",
-    "Camaro - كامارو",
-    "Corvette - كورفيت"
-  ],
+    "Chevrolet - شفروليه": [
+      "Impala - إمبالا",
+      "Malibu - ماليبو",
+      "Tahoe - تاهو",
+      "Suburban - سوبربان",
+      "Silverado - سيلفرادو",
+      "Traverse - ترافرس",
+      "Equinox - إكوينوكس",
+      "Cruze - كروز",
+      "Camaro - كامارو",
+      "Corvette - كورفيت"
+    ],
 
-  "Dodge - دودج": [
-    "Charger - تشارجر",
-    "Challenger - تشالنجر",
-    "Durango - دورانجو",
-    "Journey - جورني",
-    "Ram - رام"
-  ],
+    "Dodge - دودج": [
+      "Charger - تشارجر",
+      "Challenger - تشالنجر",
+      "Durango - دورانجو",
+      "Journey - جورني",
+      "Ram - رام"
+    ],
 
-  "GMC - جي إم سي": [
-    "Yukon - يوكن",
-    "Yukon XL - يوكن XL",
-    "Sierra - سييرا",
-    "Terrain - تيرين",
-    "Acadia - أكاديا",
-    "Canyon - كانيون"
-  ],
+    "GMC - جي إم سي": [
+      "Yukon - يوكن",
+      "Yukon XL - يوكن XL",
+      "Sierra - سييرا",
+      "Terrain - تيرين",
+      "Acadia - أكاديا",
+      "Canyon - كانيون"
+    ],
 
-  "Ford - فورد": [
-    "F-150",
-    "Explorer - إكسبلورر",
-    "Expedition - إكسبديشن",
-    "Escape - إسكيب",
-    "Mustang - موستانج",
-    "Edge - إيدج",
-    "Bronco - برونكو"
-  ],
+    "Ford - فورد": [
+      "F-150",
+      "Explorer - إكسبلورر",
+      "Expedition - إكسبديشن",
+      "Escape - إسكيب",
+      "Mustang - موستانج",
+      "Edge - إيدج",
+      "Bronco - برونكو"
+    ],
 
-  "Jeep - جيب": [
-    "Grand Cherokee - جراند شيروكي",
-    "Wrangler - رانجلر",
-    "Cherokee - شيروكي",
-    "Compass - كومباس",
-    "Renegade - رينيجيد",
-    "Gladiator - جلادياتور"
-  ],
+    "Jeep - جيب": [
+      "Grand Cherokee - جراند شيروكي",
+      "Wrangler - رانجلر",
+      "Cherokee - شيروكي",
+      "Compass - كومباس",
+      "Renegade - رينيجيد",
+      "Gladiator - جلادياتور"
+    ],
 
-  "Hyundai - هيونداي": [
-    "Elantra - إلنترا",
-    "Sonata - سوناتا",
-    "Accent - أكسنت",
-    "Tucson - توسان",
-    "Santa Fe - سانتا في",
-    "Palisade - باليسيد",
-    "Kona - كونا",
-    "Azera - أزيرا"
-  ],
+    "Hyundai - هيونداي": [
+      "Elantra - إلنترا",
+      "Sonata - سوناتا",
+      "Accent - أكسنت",
+      "Tucson - توسان",
+      "Santa Fe - سانتا في",
+      "Palisade - باليسيد",
+      "Kona - كونا",
+      "Azera - أزيرا"
+    ],
 
-  "Kia - كيا": [
-    "Cerato - سيراتو",
-    "K5 - كي 5",
-    "Optima - أوبتيما",
-    "Sportage - سبورتاج",
-    "Sorento - سورينتو",
-    "Telluride - تيلورايد",
-    "Seltos - سيلتوس",
-    "Rio - ريو"
-  ],
+    "Kia - كيا": [
+      "Cerato - سيراتو",
+      "K5 - كي 5",
+      "Optima - أوبتيما",
+      "Sportage - سبورتاج",
+      "Sorento - سورينتو",
+      "Telluride - تيلورايد",
+      "Seltos - سيلتوس",
+      "Rio - ريو"
+    ],
 
-  "Toyota - تويوتا": [
-    "Camry - كامري",
-    "Corolla - كورولا",
-    "Land Cruiser - لاندكروزر",
-    "Prado - برادو",
-    "Hilux - هايلوكس",
-    "RAV4 - راف فور",
-    "Yaris - يارس",
-    "Avalon - أفالون",
-    "Fortuner - فورتشنر"
-  ],
+    "Toyota - تويوتا": [
+      "Camry - كامري",
+      "Corolla - كورولا",
+      "Land Cruiser - لاندكروزر",
+      "Prado - برادو",
+      "Hilux - هايلوكس",
+      "RAV4 - راف فور",
+      "Yaris - يارس",
+      "Avalon - أفالون",
+      "Fortuner - فورتشنر"
+    ],
 
-  "Nissan - نيسان": [
-    "Altima - ألتيما",
-    "Maxima - ماكسيما",
-    "Sentra - سنترا",
-    "Patrol - باترول",
-    "X-Trail - إكس تريل",
-    "Pathfinder - باثفايندر",
-    "Kicks - كيكس",
-    "370Z"
-  ],
+    "Nissan - نيسان": [
+      "Altima - ألتيما",
+      "Maxima - ماكسيما",
+      "Sentra - سنترا",
+      "Patrol - باترول",
+      "X-Trail - إكس تريل",
+      "Pathfinder - باثفايندر",
+      "Kicks - كيكس",
+      "370Z"
+    ],
 
-  "Honda - هوندا": [
-    "Civic - سيفيك",
-    "Accord - أكورد",
-    "CR-V",
-    "Pilot - بايلوت",
-    "HR-V",
-    "Odyssey - أوديسي"
-  ],
+    "Honda - هوندا": [
+      "Civic - سيفيك",
+      "Accord - أكورد",
+      "CR-V",
+      "Pilot - بايلوت",
+      "HR-V",
+      "Odyssey - أوديسي"
+    ],
 
-  "BMW - بي إم دبليو": [
-    "3 Series",
-    "5 Series",
-    "7 Series",
-    "X1",
-    "X3",
-    "X5",
-    "X6",
-    "X7"
-  ],
+    "BMW - بي إم دبليو": [
+      "3 Series",
+      "5 Series",
+      "7 Series",
+      "X1",
+      "X3",
+      "X5",
+      "X6",
+      "X7"
+    ],
 
-  "Mercedes-Benz - مرسيدس": [
-    "C-Class",
-    "E-Class",
-    "S-Class",
-    "A-Class",
-    "GLC",
-    "GLE",
-    "GLS",
-    "G-Class"
-  ],
+    "Mercedes-Benz - مرسيدس": [
+      "C-Class",
+      "E-Class",
+      "S-Class",
+      "A-Class",
+      "GLC",
+      "GLE",
+      "GLS",
+      "G-Class"
+    ],
 
-  "Audi - أودي": [
-    "A3",
-    "A4",
-    "A6",
-    "A8",
-    "Q3",
-    "Q5",
-    "Q7",
-    "Q8"
-  ]
-};
-const carYears = [];
+    "Audi - أودي": [
+      "A3",
+      "A4",
+      "A6",
+      "A8",
+      "Q3",
+      "Q5",
+      "Q7",
+      "Q8"
+    ]
+  };
+  const carYears = [];
 
-for (let year = 2026; year >= 1990; year--) {
-  carYears.push(String(year));
-}
-console.log("🚗 CAR SYSTEM LOADED");
-// ==========================================
-// تشغيل اختيار منشأ → شركة → موديل → سنة
-// ==========================================
-console.log("🚗 carOriginOptions:", document.getElementById("carOriginOptions"));
-console.log("🚗 carOriginGroup:", document.getElementById("carOriginGroup"));
-const carOriginOptions = document.getElementById("carOriginOptions");
-const carBrandGroup = document.getElementById("carBrandGroup");
-const carBrandOptions = document.getElementById("carBrandOptions");
+  for (let year = 2026; year >= 1990; year--) {
+    carYears.push(String(year));
+  }
+  console.log("🚗 CAR SYSTEM LOADED");
+  // ==========================================
+  // تشغيل اختيار منشأ → شركة → موديل → سنة
+  // ==========================================
+  console.log("🚗 carOriginOptions:", document.getElementById("carOriginOptions"));
+  console.log("🚗 carOriginGroup:", document.getElementById("carOriginGroup"));
+  const carOriginOptions = document.getElementById("carOriginOptions");
+  const carBrandGroup = document.getElementById("carBrandGroup");
+  const carBrandOptions = document.getElementById("carBrandOptions");
 
-const carModelGroup = document.getElementById("carModelGroup");
-const carModelOptions = document.getElementById("carModelOptions");
+  const carModelGroup = document.getElementById("carModelGroup");
+  const carModelOptions = document.getElementById("carModelOptions");
 
-const carYearGroup = document.getElementById("carYearGroup");
-const carYearOptions = document.getElementById("carYearOptions");
+  const carYearGroup = document.getElementById("carYearGroup");
+  const carYearOptions = document.getElementById("carYearOptions");
 
 
-// عند اختيار منشأ السيارات
-if (carOriginOptions) {
+  // عند اختيار منشأ السيارات
+  if (carOriginOptions) {
 
-  carOriginOptions.addEventListener("change", function () {
+    carOriginOptions.addEventListener("change", function () {
 
-    const selectedOrigins = Array.from(
-      document.querySelectorAll('input[name="carOrigins"]:checked')
-    ).map(input => input.value);
+      const selectedOrigins = Array.from(
+        document.querySelectorAll('input[name="carOrigins"]:checked')
+      ).map(input => input.value);
 
-    // تنظيف الشركات والموديلات والسنوات
-    carBrandOptions.innerHTML = "";
-    carModelOptions.innerHTML = "";
-    carYearOptions.innerHTML = "";
+      // تنظيف الشركات والموديلات والسنوات
+      carBrandOptions.innerHTML = "";
+      carModelOptions.innerHTML = "";
+      carYearOptions.innerHTML = "";
 
-    carModelGroup.style.display = "none";
-    carYearGroup.style.display = "none";
+      carModelGroup.style.display = "none";
+      carYearGroup.style.display = "none";
 
-    if (selectedOrigins.length === 0) {
-      carBrandGroup.style.display = "none";
-      return;
-    }
-
-    // جمع الشركات الخاصة بكل المناشئ المختارة
-    let brands = [];
-
-    selectedOrigins.forEach(origin => {
-
-      if (carBrands[origin]) {
-        brands.push(...carBrands[origin]);
+      if (selectedOrigins.length === 0) {
+        carBrandGroup.style.display = "none";
+        return;
       }
 
-    });
+      // جمع الشركات الخاصة بكل المناشئ المختارة
+      let brands = [];
 
-    // إزالة التكرار
-    brands = [...new Set(brands)];
+      selectedOrigins.forEach(origin => {
 
-    // إنشاء مربعات الشركات
-    brands.forEach(brand => {
+        if (carBrands[origin]) {
+          brands.push(...carBrands[origin]);
+        }
 
-      const label = document.createElement("label");
+      });
 
-      label.className = "specialty-checkbox";
+      // إزالة التكرار
+      brands = [...new Set(brands)];
 
-      label.innerHTML = `
+      // إنشاء مربعات الشركات
+      brands.forEach(brand => {
+
+        const label = document.createElement("label");
+
+        label.className = "specialty-checkbox";
+
+        label.innerHTML = `
         <input
           type="checkbox"
           name="carBrands"
@@ -805,53 +595,53 @@ if (carOriginOptions) {
         <span>${brand}</span>
       `;
 
-      carBrandOptions.appendChild(label);
+        carBrandOptions.appendChild(label);
 
+      });
+
+      carBrandGroup.style.display = "block";
     });
-
-    carBrandGroup.style.display = "block";
-  });
-}
+  }
 
 
-// عند اختيار الشركات
-if (carBrandOptions) {
+  // عند اختيار الشركات
+  if (carBrandOptions) {
 
-  carBrandOptions.addEventListener("change", function () {
+    carBrandOptions.addEventListener("change", function () {
 
-    const selectedBrands = Array.from(
-      document.querySelectorAll('input[name="carBrands"]:checked')
-    ).map(input => input.value);
+      const selectedBrands = Array.from(
+        document.querySelectorAll('input[name="carBrands"]:checked')
+      ).map(input => input.value);
 
-    carModelOptions.innerHTML = "";
-    carYearOptions.innerHTML = "";
+      carModelOptions.innerHTML = "";
+      carYearOptions.innerHTML = "";
 
-    carYearGroup.style.display = "none";
+      carYearGroup.style.display = "none";
 
-    if (selectedBrands.length === 0) {
-      carModelGroup.style.display = "none";
-      return;
-    }
-
-    let models = [];
-
-    selectedBrands.forEach(brand => {
-
-      if (carModels[brand]) {
-        models.push(...carModels[brand]);
+      if (selectedBrands.length === 0) {
+        carModelGroup.style.display = "none";
+        return;
       }
 
-    });
+      let models = [];
 
-    models = [...new Set(models)];
+      selectedBrands.forEach(brand => {
 
-    models.forEach(model => {
+        if (carModels[brand]) {
+          models.push(...carModels[brand]);
+        }
 
-      const label = document.createElement("label");
+      });
 
-      label.className = "specialty-checkbox";
+      models = [...new Set(models)];
 
-      label.innerHTML = `
+      models.forEach(model => {
+
+        const label = document.createElement("label");
+
+        label.className = "specialty-checkbox";
+
+        label.innerHTML = `
         <input
           type="checkbox"
           name="carModels"
@@ -860,38 +650,38 @@ if (carBrandOptions) {
         <span>${model}</span>
       `;
 
-      carModelOptions.appendChild(label);
+        carModelOptions.appendChild(label);
 
+      });
+
+      carModelGroup.style.display = "block";
     });
-
-    carModelGroup.style.display = "block";
-  });
-}
+  }
 
 
-// عند اختيار الموديلات
-if (carModelOptions) {
+  // عند اختيار الموديلات
+  if (carModelOptions) {
 
-  carModelOptions.addEventListener("change", function () {
+    carModelOptions.addEventListener("change", function () {
 
-    const selectedModels = Array.from(
-      document.querySelectorAll('input[name="carModels"]:checked')
-    );
+      const selectedModels = Array.from(
+        document.querySelectorAll('input[name="carModels"]:checked')
+      );
 
-    carYearOptions.innerHTML = "";
+      carYearOptions.innerHTML = "";
 
-    if (selectedModels.length === 0) {
-      carYearGroup.style.display = "none";
-      return;
-    }
+      if (selectedModels.length === 0) {
+        carYearGroup.style.display = "none";
+        return;
+      }
 
-    carYears.forEach(year => {
+      carYears.forEach(year => {
 
-      const label = document.createElement("label");
+        const label = document.createElement("label");
 
-      label.className = "specialty-checkbox";
+        label.className = "specialty-checkbox";
 
-      label.innerHTML = `
+        label.innerHTML = `
         <input
           type="checkbox"
           name="carYears"
@@ -900,54 +690,54 @@ if (carModelOptions) {
         <span>${year}</span>
       `;
 
-      carYearOptions.appendChild(label);
+        carYearOptions.appendChild(label);
 
+      });
+
+      carYearGroup.style.display = "block";
     });
+  }
+  const regTypeSelect = document.getElementById("regType");
+  const specialtyGroup = document.getElementById("specialtyGroup");
+  const specialtyOptions = document.getElementById("specialtyOptions");
 
-    carYearGroup.style.display = "block";
-  });
-}
-const regTypeSelect = document.getElementById("regType");
-const specialtyGroup = document.getElementById("specialtyGroup");
-const specialtyOptions = document.getElementById("specialtyOptions");
+  if (regTypeSelect && specialtyGroup && specialtyOptions) {
 
-if (regTypeSelect && specialtyGroup && specialtyOptions) {
+    regTypeSelect.addEventListener("change", function () {
 
-  regTypeSelect.addEventListener("change", function () {
+      const type = this.value;
 
-    const type = this.value;
+      specialtyOptions.innerHTML = "";
 
-    specialtyOptions.innerHTML = "";
+      let specialties = [];
 
-    let specialties = [];
+      if (type === "maintenance") {
 
-    if (type === "maintenance") {
+        specialties = maintenanceSpecialties;
 
-      specialties = maintenanceSpecialties;
+      } else if (type === "seller") {
 
-    } else if (type === "seller") {
+        specialties = sellerSpecialties;
 
-      specialties = sellerSpecialties;
+      } else if (type === "both") {
 
-    } else if (type === "both") {
+        specialties = [
+          ...maintenanceSpecialties,
+          ...sellerSpecialties
+        ];
 
-      specialties = [
-        ...maintenanceSpecialties,
-        ...sellerSpecialties
-      ];
+      } else {
 
-    } else {
+        specialtyGroup.style.display = "none";
+        return;
+      }
 
-      specialtyGroup.style.display = "none";
-      return;
-    }
+      specialties.forEach(item => {
 
-    specialties.forEach(item => {
+        const label = document.createElement("label");
+        label.className = "specialty-checkbox";
 
-      const label = document.createElement("label");
-      label.className = "specialty-checkbox";
-
-      label.innerHTML = `
+        label.innerHTML = `
         <input
           type="checkbox"
           name="specialties"
@@ -956,222 +746,300 @@ if (regTypeSelect && specialtyGroup && specialtyOptions) {
         <span>${item}</span>
       `;
 
-      specialtyOptions.appendChild(label);
-    });
+        specialtyOptions.appendChild(label);
+      });
 
-    specialtyGroup.style.display = "block";
-  });
-}
-    
+      specialtyGroup.style.display = "block";
+    });
+  }
+
   // إغلاق نافذة التسجيل
   window.closeModal = function () {
     const el = document.getElementById("registrationModal");
     if (el) el.classList.remove("active");
   };
 
+  // ==========================================
   // حفظ التسجيلات
+  // ==========================================
+
   const registrationForm = document.getElementById("registrationForm");
 
   if (registrationForm) {
+
     registrationForm.addEventListener("submit", async (e) => {
+
       e.preventDefault();
 
+      try {
 
-const data = {
-  name: document.getElementById("name")?.value || "",
-  phone: document.getElementById("phone")?.value || "",
-  city: document.getElementById("city")?.value || "",
-  region: document.getElementById("region")?.value || "",
-  regType: document.getElementById("regType")?.value || "",
-specialty: Array.from(
-  document.querySelectorAll('input[name="specialties"]:checked')
-).map(input => input.value),  workDays: document.getElementById("workDays")?.value || "",
-  workHours: document.getElementById("workHours")?.value || "",
-  mapLocation: document.getElementById("mapLocation")?.value || "",
-  description: document.getElementById("description")?.value || ""
-};
+        // جمع التخصصات المختارة
+        const selectedSpecialties = Array.from(
+          document.querySelectorAll('input[name="specialties"]:checked')
+        ).map(input => input.value);
 
-const ok = await saveRegistration(data);
-      if (ok) {
-        alert("تم الحفظ");
+        // بيانات التسجيل
+        const data = {
+          name: document.getElementById("name")?.value.trim() || "",
+          phone: document.getElementById("phone")?.value.trim() || "",
+          city: document.getElementById("city")?.value.trim() || "",
+          region: document.getElementById("region")?.value.trim() || "",
+          regType: document.getElementById("regType")?.value || "",
+
+          // نخزن التخصصات كـ Array
+          specialties: selectedSpecialties,
+
+          workDays: document.getElementById("workDays")?.value.trim() || "",
+          workHours: document.getElementById("workHours")?.value.trim() || "",
+          mapLocation: document.getElementById("mapLocation")?.value.trim() || "",
+          description: document.getElementById("description")?.value.trim() || ""
+        };
+
+        console.log("📋 بيانات التسجيل:", data);
+
+        // التحقق من البيانات الأساسية
+        if (!data.name) {
+          alert("يرجى إدخال اسم المحل");
+          return;
+        }
+
+        if (!data.city) {
+          alert("يرجى إدخال المحافظة");
+          return;
+        }
+
+        if (!data.phone) {
+          alert("يرجى إدخال رقم الهاتف");
+          return;
+        }
+
+        if (!data.regType) {
+          alert("يرجى اختيار الفئة");
+          return;
+        }
+
+        // الحفظ في Firebase
+        const ok = await saveRegistration(data);
+
+        console.log("💾 نتيجة الحفظ:", ok);
+
+        if (!ok) {
+          alert("حدث خطأ أثناء الحفظ");
+          return;
+        }
+
+        // نجاح
+        alert("✅ تم حفظ التسجيل بنجاح");
+
+        // تنظيف النموذج
         registrationForm.reset();
-        const regModal = document.getElementById("registrationModal");
-        if (regModal) regModal.classList.remove("active");
-        // بعد الحفظ، نعيد تحميل قائمة المحلات ليظهر للجميع
-        loadRegistrations();
-      } else {
-        alert("حدث خطأ أثناء الحفظ");
+
+        // إخفاء التخصصات
+        const specialtyGroup =
+          document.getElementById("specialtyGroup");
+
+        const specialtyOptions =
+          document.getElementById("specialtyOptions");
+
+        if (specialtyGroup) {
+          specialtyGroup.style.display = "none";
+        }
+
+        if (specialtyOptions) {
+          specialtyOptions.innerHTML = "";
+        }
+
+        // إغلاق النافذة
+        const regModal =
+          document.getElementById("registrationModal");
+
+        if (regModal) {
+          regModal.classList.remove("active");
+        }
+
+        // إعادة تحميل التسجيلات مباشرة
+        await loadRegistrations();
+
+      } catch (error) {
+
+        console.error(
+          "❌ Registration save error:",
+          error
+        );
+
+        alert("حدث خطأ غير متوقع أثناء الحفظ");
+
       }
+
     });
+
+  } else {
+
+    console.error(
+      "❌ registrationForm غير موجود"
+    );
+
   }
-
   // إرسال تعليق
   // إرسال تعليق
-window.sendComment = async function (shopId) {
+  window.sendComment = async function (shopId) {
 
-  const name = document.getElementById(`name-${shopId}`).value.trim();
-  const comment = document.getElementById(`comment-${shopId}`).value.trim();
-  const rating = parseInt(
-    document.getElementById(`rating-${shopId}`).value
-  );
-const ok = await saveComment({
-  shopId,
-  name: name || "مستخدم",
-  comment,
-  rating
-});
+    const name = document.getElementById(`name-${shopId}`).value.trim();
+    const comment = document.getElementById(`comment-${shopId}`).value.trim();
+    const rating = parseInt(
+      document.getElementById(`rating-${shopId}`).value
+    );
+    const ok = await saveComment({
+      shopId,
+      name: name || "مستخدم",
+      comment,
+      rating
+    });
 
-if (ok === "already-rated") {
-  alert("لقد قيّمت هذا المحل مسبقًا ⭐");
-  return;
-}
-
-if (!ok) {
-  alert("حدث خطأ أثناء الحفظ");
-  return;
-}
-  document.getElementById(`comment-${shopId}`).value = "";
-  document.getElementById(`name-${shopId}`).value = "";
-
-  await loadComments(shopId);
-};
-
-  // تحميل التعليقات
-  async function loadComments(shopId) {
-
-    const box = document.getElementById(`comments-${shopId}`);
-
-    if (!box) return;
-
-    const comments = await getComments(shopId);
-    const stats = await getRatingStats(shopId);
-const ratingBox =
-  document.getElementById(`rating-summary-${shopId}`);
-
-if (ratingBox) {
-  ratingBox.textContent =
-    `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
-}
-
-    if (!Array.isArray(comments) || comments.length === 0) {
-      box.innerHTML = "لا توجد تعليقات";
+    if (ok === "already-rated") {
+      alert("لقد قيّمت هذا المحل مسبقًا ⭐");
       return;
     }
 
-    box.innerHTML = "";
-// تحميل إحصائية التقييم فقط
-async function loadComments(shopId) {
+    if (!ok) {
+      alert("حدث خطأ أثناء الحفظ");
+      return;
+    }
+    document.getElementById(`comment-${shopId}`).value = "";
+    document.getElementById(`name-${shopId}`).value = "";
 
-  const box = document.getElementById(`comments-${shopId}`);
+    await loadComments(shopId);
+  };
 
-  const ratingBox =
-    document.getElementById(`rating-summary-${shopId}`);
+  // تحميل التعليقات وتحديث ملخص التقييم
+  async function loadComments(shopId) {
 
-  if (!ratingBox) return;
+    const stats = await getRatingStats(shopId);
 
-  const comments = await getComments(shopId);
-  const stats = await getRatingStats(shopId);
+    const ratingBox =
+      document.getElementById(`rating-summary-${shopId}`);
 
-  ratingBox.textContent =
-    `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+    if (ratingBox) {
+      ratingBox.textContent =
+        `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+    }
 
-  // إخفاء قائمة التعليقات الفردية
-  if (box) {
-    box.innerHTML = "";
-    box.style.display = "none";
+    const ratingBadge =
+      document.getElementById(`rating-badge-${shopId}`);
+
+    if (ratingBadge) {
+      ratingBadge.textContent =
+        `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+    }
+
+    // ملاحظة: عرض قائمة التعليقات الفردية غير مفعّل حالياً بالواجهة
+    const box = document.getElementById(`comments-${shopId}`);
+
+    if (box) {
+      const comments = await getComments(shopId);
+
+      if (!Array.isArray(comments) || comments.length === 0) {
+        box.innerHTML = "لا توجد تعليقات";
+        return;
+      }
+
+      box.innerHTML = "";
+    }
   }
-}
-  }
 
 
-// ================================
-// فتح قسم الصيانة أو المبيعات
-// ================================
-// ================================
-// فتح قسم الصيانة أو المبيعات
-// ================================
-// ==========================================
-// حساب عدد المحلات لكل فئة وتخصص
-// ==========================================
-async function updateCategoryCounts(type) {
-  try {
-    const regs = await getRegistrations();
+  // ================================
+  // فتح قسم الصيانة أو المبيعات
+  // ================================
+  // ================================
+  // فتح قسم الصيانة أو المبيعات
+  // ================================
+  // ==========================================
+  // حساب عدد المحلات لكل فئة وتخصص
+  // ==========================================
+  async function updateCategoryCounts(type) {
+    try {
+      const regs = await getRegistrations();
 
-    // عدد جميع المحلات ضمن القسم
-    const totalCount = regs.filter(r =>
-      r.regType === type || r.regType === "both"
-    ).length;
+      // عدد جميع المحلات ضمن القسم
+      const totalCount = regs.filter(r =>
+        r.regType === type || r.regType === "both"
+      ).length;
 
-    // تحديث عنوان القسم
-    const title = document.querySelector(".section-title");
+      // تحديث عنوان القسم
+      const title = document.querySelector(".section-title");
 
-    if (title) {
-      const titleText =
-        type === "maintenance"
-          ? "🔧 خدمات الصيانة"
-          : "🛒 فئات المبيعات";
+      if (title) {
+        const titleText =
+          type === "maintenance"
+            ? "🔧 خدمات الصيانة"
+            : "🛒 فئات المبيعات";
 
-      title.innerHTML = `
+        title.innerHTML = `
         ${titleText}
         <span class="main-category-count">${totalCount}</span>
       `;
-    }
+      }
 
-    // تحديث عدد المحلات لكل تخصص
-    const cards = document.querySelectorAll(".category-card");
+      // تحديث عدد المحلات لكل تخصص
+      const cards = document.querySelectorAll(".category-card");
 
-cards.forEach(card => {
+      cards.forEach(card => {
 
-  const onclick = card.getAttribute("onclick") || "";
+        const onclick = card.getAttribute("onclick") || "";
 
-  // استخراج اسم التخصص من showCategoryRegistrations
-  const match = onclick.match(
-    /showCategoryRegistrations\(\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/
-  );
+        // استخراج اسم التخصص من showCategoryRegistrations
+        const match = onclick.match(
+          /showCategoryRegistrations\(\s*['"][^'"]+['"]\s*,\s*['"]([^'"]+)['"]\s*\)/
+        );
 
-  if (!match) return;
+        if (!match) return;
 
-  const specialty = match[1];
+        const specialty = match[1];
+        const count = regs.filter(r =>
+          (r.regType === type || r.regType === "both") &&
+          (
+            Array.isArray(r.specialties)
+              ? r.specialties.includes(specialty)
+              : Array.isArray(r.specialty)
+                ? r.specialty.includes(specialty)
+                : String(r.specialty || "").trim() === String(specialty || "").trim()
+          )
+        ).length;
+        let countElement =
+          card.querySelector(".category-count");
 
-  const count = regs.filter(r =>
-    (r.regType === type || r.regType === "both") &&
-    (r.specialty || "").trim() === specialty.trim()
-  ).length;
+        if (!countElement) {
+          countElement = document.createElement("span");
+          countElement.className = "category-count";
 
-  let countElement =
-    card.querySelector(".category-count");
+          const heading = card.querySelector("h3");
 
-  if (!countElement) {
-    countElement = document.createElement("span");
-    countElement.className = "category-count";
+          if (heading) {
+            heading.appendChild(document.createTextNode(" "));
+            heading.appendChild(countElement);
+          }
+        }
 
-    const heading = card.querySelector("h3");
-
-    if (heading) {
-      heading.appendChild(document.createTextNode(" "));
-      heading.appendChild(countElement);
+        countElement.textContent = count;
+      });
+    } catch (error) {
+      console.error("updateCategoryCounts error:", error);
     }
   }
+  window.openCategory = function (type) {
 
-  countElement.textContent = count;
-});
-  } catch (error) {
-    console.error("updateCategoryCounts error:", error);
-  }
-}
-window.openCategory = function (type) {
+    const title = document.querySelector(".section-title");
+    const grid = document.querySelector(".category-grid");
+    const backButton = document.getElementById("backToHome");
 
-  const title = document.querySelector(".section-title");
-  const grid = document.querySelector(".category-grid");
-const backButton = document.getElementById("backToHome");
+    if (backButton) {
+      backButton.style.display = "block";
 
-if (backButton) {
-  backButton.style.display = "block";
+      backButton.onclick = function () {
+        title.textContent = "الأقسام";
 
-  backButton.onclick = function () {
-    title.textContent = "الأقسام";
-
-    grid.innerHTML = `
+        grid.innerHTML = `
       <div
         class="category-card"
         onclick="openCategory('maintenance')"
@@ -1195,24 +1063,24 @@ if (backButton) {
       </div>
     `;
 
-    backButton.style.display = "none";
+        backButton.style.display = "none";
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
-}
-  if (!title || !grid) {
-    console.error("category elements not found");
-    return;
-  }
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      };
+    }
+    if (!title || !grid) {
+      console.error("category elements not found");
+      return;
+    }
 
-  if (type === "maintenance") {
+    if (type === "maintenance") {
 
-    title.textContent = "🔧 خدمات الصيانة";
+      title.textContent = "🔧 خدمات الصيانة";
 
-    grid.innerHTML = `
+      grid.innerHTML = `
 
       <div class="category-card"
            onclick="showCategoryRegistrations('maintenance', 'فني تبريد وتكييف')">
@@ -1356,11 +1224,11 @@ if (backButton) {
 
     `;
 
-  } else if (type === "seller") {
+    } else if (type === "seller") {
 
-    title.textContent = "🛒 فئات المبيعات";
+      title.textContent = "🛒 فئات المبيعات";
 
-    grid.innerHTML = `
+      grid.innerHTML = `
 
       <div class="category-card"
            onclick="showCategoryRegistrations('seller', 'قطع غيار أصلية')">
@@ -1434,9 +1302,452 @@ if (backButton) {
 
 `;
 
-}
 
-updateCategoryCounts(type);
 
-};
-});
+      updateCategoryCounts(type);
+
+    }
+  };
+
+    // ==========================================
+    // فتح صفحة مستقلة (تخفي الصفحة الرئيسية وتعرض المحتوى بملء الشاشة)
+    // ==========================================
+    function openAsFullPage() {
+
+      const homePage = document.querySelector(".container");
+      const registrationsList = document.getElementById("registrationsList");
+
+      if (!registrationsList) return;
+
+      // إخراج صفحة المحلات من داخل الصفحة الرئيسية
+      document.body.appendChild(registrationsList);
+
+      // إخفاء الصفحة الرئيسية
+      if (homePage) {
+        homePage.style.display = "none";
+      }
+
+      // إظهار صفحة المحلات
+      registrationsList.style.display = "block";
+      registrationsList.style.minHeight = "100vh";
+      registrationsList.style.padding = "20px";
+      registrationsList.style.boxSizing = "border-box";
+
+      // زر الرجوع
+      let backButton = document.getElementById("registrationsBackButton");
+
+      if (!backButton) {
+
+        backButton = document.createElement("button");
+
+        backButton.id = "registrationsBackButton";
+
+        backButton.innerHTML = "⬅️ رجوع";
+
+        backButton.style.cssText = `
+      display:block;
+      width:100%;
+      max-width:390px;
+      margin:0 auto 20px auto;
+      padding:14px;
+      border:none;
+      border-radius:15px;
+      font-size:17px;
+      font-weight:bold;
+      cursor:pointer;
+    `;
+
+        backButton.onclick = function () {
+
+          registrationsList.style.display = "none";
+
+          // إعادة صفحة المحلات إلى الصفحة الرئيسية
+          if (homePage) {
+            homePage.appendChild(registrationsList);
+            homePage.style.display = "";
+          }
+
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+          });
+        };
+
+        registrationsList.prepend(backButton);
+      } else {
+        // تأكد إن زر الرجوع يبقى أول عنصر بالصفحة
+        registrationsList.prepend(backButton);
+      }
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+
+    // ==========================================
+    // عرض المحلات ضمن تخصص فرعي معيّن
+    // ==========================================
+    window.showCategoryRegistrations = async function (type, specialty) {
+
+      const container = document.getElementById("registrationsList");
+
+      if (!container) return;
+
+      container.innerHTML = "🔍 جارٍ التحميل...";
+
+      // افتح الصفحة كاملة فوراً عشان الصفحة الرئيسية تنتهي وتظهر صفحة جديدة
+      openAsFullPage();
+
+      try {
+
+        const regs = await getRegistrations();
+
+        const results = regs.filter(r => {
+
+          if (r.regType !== type && r.regType !== "both") return false;
+
+          if (Array.isArray(r.specialties)) {
+            return r.specialties.includes(specialty);
+          }
+
+          if (Array.isArray(r.specialty)) {
+            return r.specialty.includes(specialty);
+          }
+
+          return String(r.specialty || "").trim() === String(specialty || "").trim();
+        });
+
+        if (results.length === 0) {
+
+          container.innerHTML = `
+          <div class="no-registrations">
+            لا توجد محلات مسجلة ضمن:
+            <strong>${specialty}</strong>
+          </div>
+        `;
+
+          openAsFullPage();
+
+          return;
+        }
+
+        container.innerHTML = "";
+
+        results.forEach(r => {
+
+          const typeLabel =
+            r.regType === "seller"
+              ? "🛒 بيع"
+              : r.regType === "maintenance"
+                ? "🔧 صيانة"
+                : r.regType === "both"
+                  ? "🔧🛒 صيانة + بيع"
+                  : r.regType || "";
+
+          const specialties = Array.isArray(r.specialties)
+            ? r.specialties.join("، ")
+            : (r.specialty || "غير محدد");
+
+          container.innerHTML += `
+          <div class="registration-card">
+
+            <h3>
+              ${r.name || r.shopName || "بدون اسم"}
+            </h3>
+
+            <p>
+              <strong>الفئة:</strong>
+              ${typeLabel}
+            </p>
+
+            <p>
+              <strong>التخصصات:</strong>
+              ${specialties}
+            </p>
+
+            <p>
+              <strong>المحافظة:</strong>
+              ${r.city || ""}
+            </p>
+
+            <p>
+              <strong>المنطقة:</strong>
+              ${r.region || ""}
+            </p>
+
+            <p>
+              <strong>الهاتف:</strong>
+              ${r.phone || ""}
+            </p>
+
+            ${r.mapLocation
+              ? `
+                <p>
+                  <strong>🗺️ الموقع:</strong>
+                  <a href="${r.mapLocation}" target="_blank">
+                    فتح الموقع على الخريطة 📍
+                  </a>
+                </p>
+              `
+              : ""
+            }
+
+            <a href="tel:${r.phone || ""}">
+              <button>📞 اتصال</button>
+            </a>
+
+          </div>
+        `;
+        });
+
+        openAsFullPage();
+
+      } catch (error) {
+
+        console.error("showCategoryRegistrations error:", error);
+
+        container.innerHTML = `
+        <div class="no-registrations">
+          حدث خطأ أثناء جلب المحلات
+        </div>
+      `;
+      }
+    };
+
+    // ==========================================
+    // القائمة الجانبية
+    // ==========================================
+
+    const menuButton = document.getElementById("menuButton");
+    const sideMenu = document.getElementById("sideMenu");
+    const menuClose = document.getElementById("menuClose");
+    const menuOverlay = document.getElementById("menuOverlay");
+
+    function openMenu() {
+      sideMenu.classList.add("active");
+      menuOverlay.classList.add("active");
+    }
+
+    function closeMenu() {
+      sideMenu.classList.remove("active");
+      menuOverlay.classList.remove("active");
+    }
+
+    if (menuButton) {
+      menuButton.addEventListener("click", openMenu);
+    }
+
+    if (menuClose) {
+      menuClose.addEventListener("click", closeMenu);
+    }
+
+    if (menuOverlay) {
+      menuOverlay.addEventListener("click", closeMenu);
+    }
+
+
+    // الصفحة الرئيسية
+    window.goToHome = function () {
+      closeMenu();
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+
+
+    // الشكاوي
+    window.goToComplaints = function () {
+      closeMenu();
+
+      alert("قسم الشكاوي سيتم تفعيله لاحقاً");
+    }
+
+
+    // من نحن
+    window.goToAbout = function () {
+      closeMenu();
+
+      alert("صفحة من نحن سيتم إعدادها لاحقاً");
+    }
+
+
+    // اتصل بنا
+    window.goToContact = function () {
+      closeMenu();
+
+      alert("صفحة اتصل بنا سيتم إعدادها لاحقاً");
+    }
+
+
+    // تسجيل الدخول
+    window.login = function () {
+      closeMenu();
+
+      alert("تسجيل الدخول سيتم تفعيله لاحقاً");
+    }
+
+    // ==========================================
+    // 🔍 البحث عن المحلات والخدمات
+    // ==========================================
+
+    const searchInput = document.getElementById("searchInput");
+
+    if (searchInput) {
+
+      searchInput.addEventListener("input", async function () {
+
+        const searchText = this.value.trim().toLowerCase();
+
+        const container = document.getElementById("registrationsList");
+
+        if (!container) return;
+
+        // إذا البحث فارغ نرجع للصفحة الرئيسية
+        if (searchText === "") {
+          container.style.display = "none";
+          return;
+        }
+
+        container.style.display = "block";
+        container.innerHTML = "🔍 جارٍ البحث...";
+
+        try {
+
+          const regs = await getRegistrations();
+
+          const results = regs.filter(r => {
+
+            const specialties = Array.isArray(r.specialties)
+              ? r.specialties.join(" ")
+              : String(r.specialty || "");
+
+            const text = [
+              r.name,
+              r.shopName,
+              r.phone,
+              r.city,
+              r.region,
+              r.workDays,
+              r.workHours,
+              r.description,
+              specialties
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+            return text.includes(searchText);
+          });
+
+          if (results.length === 0) {
+
+            container.innerHTML = `
+          <div class="no-registrations">
+            لا توجد نتائج للبحث عن:
+            <strong>${this.value}</strong>
+          </div>
+        `;
+
+            return;
+          }
+
+          // عرض النتائج
+          container.innerHTML = "";
+
+          results.forEach(r => {
+
+            const typeLabel =
+              r.regType === "seller"
+                ? "🛒 بيع"
+                : r.regType === "maintenance"
+                  ? "🔧 صيانة"
+                  : r.regType === "both"
+                    ? "🔧🛒 صيانة + بيع"
+                    : r.regType || "";
+
+            const specialties = Array.isArray(r.specialties)
+              ? r.specialties.join("، ")
+              : (r.specialty || "غير محدد");
+
+            container.innerHTML += `
+          <div class="registration-card">
+
+            <h3>
+              ${r.name || r.shopName || "بدون اسم"}
+            </h3>
+
+            <p>
+              <strong>الفئة:</strong>
+              ${typeLabel}
+            </p>
+
+            <p>
+              <strong>التخصصات:</strong>
+              ${specialties}
+            </p>
+
+            <p>
+              <strong>المحافظة:</strong>
+              ${r.city || ""}
+            </p>
+
+            <p>
+              <strong>المنطقة:</strong>
+              ${r.region || ""}
+            </p>
+
+            <p>
+              <strong>الهاتف:</strong>
+              ${r.phone || ""}
+            </p>
+
+            ${r.mapLocation
+                ? `
+                  <p>
+                    <strong>🗺️ الموقع:</strong>
+                    <a href="${r.mapLocation}" target="_blank">
+                      فتح الموقع على الخريطة 📍
+                    </a>
+                  </p>
+                `
+                : ""
+              }
+
+            <a href="tel:${r.phone || ""}">
+              <button>📞 اتصال</button>
+            </a>
+
+          </div>
+        `;
+          });
+
+          container.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+
+        } catch (error) {
+
+          console.error("Search error:", error);
+
+          container.innerHTML = `
+        <div class="no-registrations">
+          حدث خطأ أثناء البحث
+        </div>
+      `;
+        }
+
+            });
+    }
+    // ==========================================
+    // صفحة مستقلة لعرض المحلات
+    // ==========================================
+
+    window.openRegistrationsPage = function () {
+      openAsFullPage();
+    };
+
+    });

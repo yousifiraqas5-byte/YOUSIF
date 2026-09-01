@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>المحلات</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="container">
+
+    <button onclick="history.back()" class="back-button">
+      ← رجوع
+    </button>
+
+    <h2 id="pageTitle">المحلات</h2>
+
+    <div id="registrationsList" class="registrations-container">
+      جارٍ تحميل النتائج...
+    </div>
+
+  </div>
+<script type="module">
+  import { getRegistrations } from "./firebase.js";
+
+  const params = new URLSearchParams(window.location.search);
+
+  const type = params.get("type");
+  const specialty = params.get("specialty");
+
+  const container = document.getElementById("registrationsList");
+  const pageTitle = document.getElementById("pageTitle");
+
+  if (specialty) {
+    pageTitle.textContent = specialty;
+  }
+
+  try {
+    const regs = await getRegistrations();
+
+    const filtered = regs.filter(r => {
+
+      const sameType =
+        r.regType === type ||
+        r.regType === "both";
+
+      const sameSpecialty =
+        !specialty ||
+        (
+          Array.isArray(r.specialties)
+            ? r.specialties.includes(specialty)
+            : String(r.specialty || "").trim() ===
+              String(specialty || "").trim()
+        );
+
+      return sameType && sameSpecialty;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="no-registrations">
+          لا توجد محلات مسجلة في هذا التخصص حتى الآن
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+
+    filtered.forEach(r => {
+
+      const specialtiesText =
+        Array.isArray(r.specialties)
+          ? r.specialties.join("، ")
+          : (r.specialty || "غير محدد");
+
+      container.innerHTML += `
+        <div class="registration-card">
+
+          <h3>${r.name || r.shopName || "بدون اسم"}</h3>
+
+          <p>
+            <strong>التخصصات:</strong>
+            ${specialtiesText}
+          </p>
+
+          <p>
+            <strong>المحافظة:</strong>
+            ${r.city || ""}
+          </p>
+
+          <p>
+            <strong>المنطقة:</strong>
+            ${r.region || ""}
+          </p>
+
+          <p>
+            <strong>الهاتف:</strong>
+            ${r.phone || ""}
+          </p>
+
+          <p>
+            <strong>أيام الدوام:</strong>
+            ${r.workDays || "غير محدد"}
+          </p>
+
+          <p>
+            <strong>أوقات الدوام:</strong>
+            ${r.workHours || "غير محدد"}
+          </p>
+
+          ${
+            r.mapLocation
+              ? `
+                <p>
+                  <a href="${r.mapLocation}" target="_blank">
+                    🗺️ فتح الموقع على الخريطة
+                  </a>
+                </p>
+              `
+              : ""
+          }
+
+          <a href="tel:${r.phone || ""}">
+            <button>📞 اتصال</button>
+          </a>
+
+        </div>
+      `;
+    });
+
+  } catch (error) {
+
+    console.error("خطأ في تحميل المحلات:", error);
+
+    container.innerHTML = `
+      <div class="no-registrations">
+        حدث خطأ أثناء تحميل المحلات
+      </div>
+    `;
+  }
+</script>
+  <script type="module" src="script.js"></script>
+
+</body>
+
+</html>
