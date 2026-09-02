@@ -129,34 +129,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.attachPhoneLongPress = attachPhoneLongPress;
 
-  // قسم التقييم والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
-  // التقييم والتعلقية منفصلان: التقييم نجمة فقط مرة واحدة، والتعليق نص بلا حدود
-  function renderReviewSection(shopId) {
-    const stars = [5, 4, 3, 2, 1].map(v =>
-      `<span class="star selected" data-v="${v}" onclick="pickStar('${shopId}', ${v})">★</span>`
+  // نجوم التقييم أعلى يسار بطاقة المحل (ضغطة على نجمة = إرسال مباشر بدون زر)
+  function starWidgetHTML(shopId) {
+    const starList = [5, 4, 3, 2, 1].map(v =>
+      `<span class="star" data-v="${v}" onclick="rateShop('${shopId}', ${v})">★</span>`
     ).join("");
 
     return `
+      <span class="shop-rating-top">
+        <span class="star-widget" id="star-widget-${shopId}">${starList}</span>
+        <span class="rating-summary" id="rating-badge-${shopId}">⭐ 0.0 (0 تقييم)</span>
+      </span>
+    `;
+  }
+
+  // قسم التعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل) — التقييم من الأعلى فقط
+  function renderReviewSection(shopId) {
+    return `
       <hr>
-      <div class="review-block">
-        <h4>⭐ التقييم</h4>
-
-        <div class="rating-summary" id="rating-summary-${shopId}">
-          ⭐ 0.0 (0 تقييم)
-        </div>
-
-        <div class="rating-form" id="rating-form-${shopId}">
-          <div class="star-select">${stars}</div>
-          <input type="hidden" id="rating-value-${shopId}" value="5">
-          <button
-            type="button"
-            class="comment-btn"
-            onclick="sendRating('${shopId}')">
-            إرسال التقييم
-          </button>
-        </div>
-      </div>
-
       <div class="review-block">
         <h4>💬 التعليقات</h4>
 
@@ -266,11 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="registration-card">
 
           <h3>
-  ${r.name || r.shopName || "بدون اسم"}
-  <span class="rating-summary" id="rating-badge-${r.id}">
-    ⭐ 0.0 (0 تقييم)
-  </span>
-</h3>
+            <span class="shop-name">${r.name || r.shopName || "بدون اسم"}</span>
+            ${starWidgetHTML(r.id)}
+          </h3>
 
           <p>
             <strong>الفئة:</strong>
@@ -1112,28 +1100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadComments(shopId);
   };
 
-  // اختيار نجمة التقييم
-  window.pickStar = function (shopId, v) {
-    const hidden = document.getElementById(`rating-value-${shopId}`);
-    if (hidden) hidden.value = v;
-
-    const container = document.getElementById(`rating-form-${shopId}`);
-    const stars = container ? container.querySelectorAll(".star") : [];
-    stars.forEach(s => {
-      const val = Number(s.dataset.v) || 0;
-      s.classList.toggle("selected", val <= v);
-    });
-  };
-
-  // إرسال التقييم (نجمة فقط، مرة واحدة لكل مستخدم)
-  window.sendRating = async function (shopId) {
-
-    const hidden = document.getElementById(`rating-value-${shopId}`);
-    const rating = hidden ? parseInt(hidden.value, 10) : 5;
+  // التقييم من أعلى البطاقة: ضغطة على نجمة تُرسل التقييم مباشرة (بدون زر إرسال)
+  window.rateShop = async function (shopId, value) {
 
     const ok = await saveRating({
       shopId,
-      rating
+      rating: value
     });
 
     if (ok === "already-rated") {
@@ -1152,10 +1124,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // تحميل التقييمات (ملخص النجمة) والتعليقات النصية بشكل منفصل
   async function loadComments(shopId) {
 
-    const ratingBox = document.getElementById(`rating-summary-${shopId}`);
     const ratingBadge = document.getElementById(`rating-badge-${shopId}`);
+    const starWidget = document.getElementById(`star-widget-${shopId}`);
     const box = document.getElementById(`comments-${shopId}`);
-    const ratingFormBox = document.getElementById(`rating-form-${shopId}`);
 
     try {
 
@@ -1170,17 +1141,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const summaryText = `⭐ ${average.toFixed(1)} (${votes} تقييم)`;
 
-      if (ratingBox) ratingBox.textContent = summaryText;
       if (ratingBadge) ratingBadge.textContent = summaryText;
 
-      // التقييم مرة واحدة فقط: إخفاء نموذج التقييم إن كان قد قيّم مسبقًا
-      if (ratingFormBox) {
+      // تلوين نجوم الأعلى حسب متوسط التقييم + تمييز من قام بالتقييم مسبقًا
+      if (starWidget) {
+        const rounded = Math.round(average);
+        starWidget.querySelectorAll(".star").forEach(s => {
+          const val = Number(s.dataset.v) || 0;
+          s.classList.toggle("selected", val <= rounded);
+        });
+
         const uid = await getCurrentUid();
         const alreadyRated = uid && ratingsList.some(r => r.uid === uid);
-
-        if (alreadyRated) {
-          ratingFormBox.innerHTML = `<p class="already-rated-note">✅ لقد قيّمت هذا المحل مسبقًا، شكرًا لك</p>`;
-        }
+        starWidget.classList.toggle("already-rated", !!alreadyRated);
       }
 
       // 2) التعليقات النصية: بلا حدود (أول تعليقين + عرض المزيد)
@@ -1757,7 +1730,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="registration-card">
 
             <h3>
-              ${r.name || r.shopName || "بدون اسم"}
+              <span class="shop-name">${r.name || r.shopName || "بدون اسم"}</span>
+              ${starWidgetHTML(r.id)}
             </h3>
 
             <p>
@@ -2000,7 +1974,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="registration-card">
 
             <h3>
-              ${r.name || r.shopName || "بدون اسم"}
+              <span class="shop-name">${r.name || r.shopName || "بدون اسم"}</span>
+              ${starWidgetHTML(r.id)}
             </h3>
 
             <p>
