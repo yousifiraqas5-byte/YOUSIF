@@ -28,6 +28,94 @@
 <script type="module">
   import { getRegistrations } from "./firebase.js";
 
+  // دالة معالجة Long Press على الرقم
+  let pressTimer = null;
+  let isLongPress = false;
+
+  window.phonePress = function (phoneId, phoneNumber) {
+    isLongPress = false;
+    pressTimer = setTimeout(() => {
+      isLongPress = true;
+      showPhoneMenu(phoneId, phoneNumber);
+    }, 500); // 500ms for long press
+  };
+
+  document.addEventListener('mouseup', () => {
+    if (pressTimer) clearTimeout(pressTimer);
+    if (!isLongPress && pressTimer !== null) {
+      pressTimer = null;
+    }
+  }, true);
+
+  document.addEventListener('touchend', () => {
+    if (pressTimer) clearTimeout(pressTimer);
+    if (!isLongPress && pressTimer !== null) {
+      pressTimer = null;
+    }
+  }, true);
+
+  function showPhoneMenu(phoneId, phoneNumber) {
+    if (!phoneNumber) return;
+
+    // إنشاء menu overlay
+    const existingMenu = document.getElementById('phoneMenu');
+    if (existingMenu) existingMenu.remove();
+
+    const menuDiv = document.createElement('div');
+    menuDiv.id = 'phoneMenu';
+    menuDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+
+    menuDiv.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 20px; min-width: 250px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <h3 style="margin-top: 0; margin-bottom: 16px; color: #333;">خيارات الرقم</h3>
+        
+        <button onclick="window.callPhone('${phoneNumber}'); document.getElementById('phoneMenu').remove();"
+          style="width: 100%; padding: 12px; margin-bottom: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+          📱 اتصال
+        </button>
+        
+        <button onclick="window.copyPhone('${phoneNumber}'); document.getElementById('phoneMenu').remove();"
+          style="width: 100%; padding: 12px; margin-bottom: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+          📋 نسخ الرقم
+        </button>
+        
+        <button onclick="document.getElementById('phoneMenu').remove();"
+          style="width: 100%; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+          ✕ إغلاق
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(menuDiv);
+    menuDiv.addEventListener('click', (e) => {
+      if (e.target === menuDiv) menuDiv.remove();
+    });
+  }
+
+  window.callPhone = function (phoneNumber) {
+    window.location.href = `tel:${phoneNumber}`;
+  };
+
+  window.copyPhone = function (phoneNumber) {
+    navigator.clipboard.writeText(phoneNumber).then(() => {
+      alert(`✅ تم نسخ الرقم: ${phoneNumber}`);
+    }).catch(() => {
+      alert('تعذر نسخ الرقم');
+    });
+  };
+
   const params = new URLSearchParams(window.location.search);
 
   const type = params.get("type");
@@ -72,12 +160,14 @@
 
     container.innerHTML = "";
 
-    filtered.forEach(r => {
+    filtered.forEach((r, index) => {
 
       const specialtiesText =
         Array.isArray(r.specialties)
           ? r.specialties.join("، ")
           : (r.specialty || "غير محدد");
+
+      const phoneId = `phone-${index}`;
 
       container.innerHTML += `
         <div class="registration-card">
@@ -99,9 +189,22 @@
             ${r.region || ""}
           </p>
 
+          ${
+            r.street
+              ? `<p><strong>الشارع/النقطة:</strong> ${r.street}</p>`
+              : ""
+          }
+
           <p>
             <strong>الهاتف:</strong>
-            ${r.phone || ""}
+            <span 
+              id="${phoneId}"
+              style="cursor:pointer;padding:4px 8px;background:#e3f2fd;border-radius:4px;display:inline-block;user-select:none;"
+              onmousedown="window.phonePress('${phoneId}', '${r.phone || ''}')"
+              ontouchstart="window.phonePress('${phoneId}', '${r.phone || ''}')"
+            >
+              📱 ${r.phone || "غير متوفر"}
+            </span>
           </p>
 
           <p>
@@ -115,6 +218,12 @@
           </p>
 
           ${
+            r.description
+              ? `<p><strong>الوصف:</strong> ${r.description}</p>`
+              : ""
+          }
+
+          ${
             r.mapLocation
               ? `
                 <p>
@@ -125,10 +234,6 @@
               `
               : ""
           }
-
-          <a href="tel:${r.phone || ""}">
-            <button>📞 اتصال</button>
-          </a>
 
         </div>
       `;

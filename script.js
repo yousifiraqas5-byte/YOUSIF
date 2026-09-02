@@ -5,6 +5,9 @@ import {
   getRegistrations,
   saveComment,
   getComments,
+  saveRating,
+  getRatings,
+  getRatingStats,
   getCurrentUid,
   saveRecommendation
 } from "./firebase.js?v=3";
@@ -16,42 +19,57 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
   const list = document.getElementById("shopsList");
 
-  // قسم التقييم والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
+  // قسم التقييمات والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
+  // الآن منفصل: تقييمات (نجوم فقط) + تعليقات (نص منفصل)
   function renderReviewSection(shopId) {
     return `
       <hr>
-      <h4>💬 التقييمات والتعليقات</h4>
+      <h4>⭐ التقييمات والتعليقات</h4>
 
-      <div class="rating-summary" id="rating-summary-${shopId}">
-        ⭐ 0.0 (0 تقييم)
-      </div>
-
-      <div class="comments-list" id="comments-${shopId}">
-        جارٍ تحميل التعليقات...
-      </div>
-
-      <div class="review-form" id="review-form-${shopId}">
-        <input
-          type="text"
-          id="name-${shopId}"
-          placeholder="اسمك">
-        <textarea
-          id="comment-${shopId}"
-          placeholder="اكتب تعليقك..."></textarea>
-
-        <select id="rating-${shopId}">
-          <option value="5">⭐⭐⭐⭐⭐</option>
-          <option value="4">⭐⭐⭐⭐</option>
-          <option value="3">⭐⭐⭐</option>
-          <option value="2">⭐⭐</option>
-          <option value="1">⭐</option>
-        </select>
-
-        <button
-          class="comment-btn"
-          onclick="sendComment('${shopId}')">
-          إرسال التقييم
+      <!-- قسم التقييمات (نجوم فقط) -->
+      <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin-bottom:16px;">
+        <h5 style="margin-top:0;margin-bottom:8px;">📊 التقييمات</h5>
+        <div class="rating-summary" id="rating-summary-${shopId}" style="font-size:16px;font-weight:bold;">
+          ⭐ 0.0 (0 تقييم)
+        </div>
+        <div style="margin-top:8px;">
+          <label for="rating-${shopId}" style="font-size:13px;color:#666;">اختر تقييمك:</label>
+          <select id="rating-${shopId}" style="width:100%;padding:8px;margin-top:4px;border-radius:4px;border:1px solid #ddd;">
+            <option value="">-- اختر التقييم --</option>
+            <option value="5">⭐⭐⭐⭐⭐ ممتاز جداً</option>
+            <option value="4">⭐⭐⭐⭐ ممتاز</option>
+            <option value="3">⭐⭐⭐ جيد</option>
+            <option value="2">⭐⭐ مقبول</option>
+            <option value="1">⭐ سيء</option>
+          </select>
+        </div>
+        <button 
+          class="comment-btn" 
+          onclick="sendRating('${shopId}')"
+          style="width:100%;margin-top:8px;padding:10px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;">
+          ✅ حفظ التقييم
         </button>
+      </div>
+
+      <!-- قسم التعليقات (منفصل تماماً) -->
+      <div style="background:#fff9e6;padding:12px;border-radius:8px;margin-bottom:16px;border-right:3px solid #ffc107;">
+        <h5 style="margin-top:0;margin-bottom:8px;">💬 التعليقات</h5>
+        <div class="comments-list" id="comments-${shopId}" style="max-height:250px;overflow-y:auto;margin-bottom:12px;">
+          جارٍ تحميل التعليقات...
+        </div>
+        
+        <div class="review-form">
+          <textarea
+            id="comment-${shopId}"
+            placeholder="اكتب تعليقك هنا (اختياري)..."
+            style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;resize:vertical;height:70px;"></textarea>
+          <button
+            class="comment-btn"
+            onclick="sendComment('${shopId}')"
+            style="width:100%;margin-top:8px;padding:10px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;">
+            💬 إضافة تعليق
+          </button>
+        </div>
       </div>
     `;
   }
@@ -836,9 +854,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // بيانات التسجيل
         const data = {
           name: document.getElementById("name")?.value.trim() || "",
-          phone: document.getElementById("phone")?.value.trim() || "",
           city: document.getElementById("city")?.value.trim() || "",
           region: document.getElementById("region")?.value.trim() || "",
+          street: document.getElementById("street")?.value.trim() || "",
+          phone: document.getElementById("phone")?.value.trim() || "",
           regType: document.getElementById("regType")?.value || "",
 
           // نخزن التخصصات كـ Array
@@ -852,24 +871,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("📋 بيانات التسجيل:", data);
 
-        // التحقق من البيانات الأساسية
-        if (!data.name) {
-          alert("يرجى إدخال اسم المحل");
+        // التحقق من الحقول الإجبارية
+        if (!data.name || data.name.length === 0) {
+          alert("❌ يرجى إدخال اسم المحل (حقل إجباري)");
           return;
         }
 
-        if (!data.city) {
-          alert("يرجى إدخال المحافظة");
+        if (!data.city || data.city.length === 0) {
+          alert("❌ يرجى إدخال المحافظة (حقل إجباري)");
           return;
         }
 
-        if (!data.phone) {
-          alert("يرجى إدخال رقم الهاتف");
+        if (!data.region || data.region.length === 0) {
+          alert("❌ يرجى إدخال المدينة/المنطقة (حقل إجباري)");
           return;
         }
 
-        if (!data.regType) {
-          alert("يرجى اختيار الفئة");
+        if (!data.regType || data.regType.length === 0) {
+          alert("❌ يرجى اختيار الفئة (حقل إجباري)");
           return;
         }
 
@@ -935,110 +954,135 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
   }
-  // إرسال تعليق
-  // إرسال تعليق
-  window.sendComment = async function (shopId) {
-
-    const name = document.getElementById(`name-${shopId}`).value.trim();
-    const comment = document.getElementById(`comment-${shopId}`).value.trim();
-    const rating = parseInt(
-      document.getElementById(`rating-${shopId}`).value
-    );
-    const ok = await saveComment({
-      shopId,
-      name: name || "مستخدم",
-      comment,
-      rating
-    });
-
-    if (ok === "already-rated") {
-      alert("لقد قيّمت هذا المحل مسبقًا ⭐");
-      return;
-    }
-
-    if (!ok) {
-      alert("حدث خطأ أثناء الحفظ");
-      return;
-    }
-    document.getElementById(`comment-${shopId}`).value = "";
-    document.getElementById(`name-${shopId}`).value = "";
-
-    await loadComments(shopId);
-  };
-
-  // تحميل التعليقات، تحديث ملخص التقييم، وعرض التعليقات (تعليقين + عرض المزيد)
-  async function loadComments(shopId) {
-
-    const ratingBox = document.getElementById(`rating-summary-${shopId}`);
-    const ratingBadge = document.getElementById(`rating-badge-${shopId}`);
-    const box = document.getElementById(`comments-${shopId}`);
-    const formBox = document.getElementById(`review-form-${shopId}`);
-
+  // إرسال تقييم (نجوم فقط - تقييم واحد لكل مستخدم)
+  window.sendRating = async function (shopId) {
     try {
-      const comments = await getComments(shopId);
-      const list = Array.isArray(comments) ? comments : [];
-
-      const votes = list.length;
-      const average = votes
-        ? list.reduce((sum, c) => sum + (Number(c.rating) || 0), 0) / votes
-        : 0;
-
-      const summaryText = `⭐ ${average.toFixed(1)} (${votes} تقييم)`;
-
-      if (ratingBox) ratingBox.textContent = summaryText;
-      if (ratingBadge) ratingBadge.textContent = summaryText;
-
-      // عرض التعليقات: أول تعليقين، والباقي خلف زر "عرض المزيد"
-      if (box) {
-        if (votes === 0) {
-          box.innerHTML = `<p class="no-comments">لا توجد تعليقات بعد، كن أول من يقيّم</p>`;
-        } else {
-          const renderOne = (c) => `
-            <div class="comment-item">
-              <div class="comment-header">
-                <span class="comment-name">${c.name || "مستخدم"}</span>
-                <span class="comment-stars">${"⭐".repeat(Number(c.rating) || 0)}</span>
-              </div>
-              ${c.comment ? `<p class="comment-text">${c.comment}</p>` : ""}
-            </div>
-          `;
-
-          const visible = list.slice(0, 2).map(renderOne).join("");
-          const hidden = list.slice(2).map(renderOne).join("");
-
-          box.innerHTML = `
-            <div class="comments-visible">${visible}</div>
-            ${hidden
-              ? `<div class="comments-hidden" style="display:none;">${hidden}</div>
-                 <button type="button" class="show-more-comments">عرض المزيد (${list.length - 2}+)</button>`
-              : ""
-            }
-          `;
-
-          const moreBtn = box.querySelector(".show-more-comments");
-          if (moreBtn) {
-            moreBtn.addEventListener("click", () => {
-              const hiddenBox = box.querySelector(".comments-hidden");
-              if (hiddenBox) hiddenBox.style.display = "block";
-              moreBtn.style.display = "none";
-            });
-          }
-        }
+      const ratingSelect = document.getElementById(`rating-${shopId}`);
+      if (!ratingSelect || !ratingSelect.value) {
+        alert("يرجى اختيار تقييم");
+        return;
       }
 
-      // التقييم مسموح مرة واحدة فقط لكل شخص: إخفاء النموذج إن كان قد قيّم سابقًا
-      if (formBox) {
-        const uid = await getCurrentUid();
-        const alreadyRated = uid && list.some(c => c.uid === uid);
+      const ratingValue = ratingSelect.value;
+      
+      const ok = await saveRating(shopId, ratingValue);
 
-        if (alreadyRated) {
-          formBox.innerHTML = `<p class="already-rated-note">✅ لقد قيّمت هذا المحل مسبقًا، شكرًا لك</p>`;
+      if (!ok) {
+        alert("حدث خطأ أثناء حفظ التقييم");
+        return;
+      }
+
+      alert("✅ شكراً لتقييمك");
+      ratingSelect.value = "";
+
+      // إعادة تحميل التقييمات والتعليقات
+      await loadRatings(shopId);
+      await loadComments(shopId);
+
+    } catch (err) {
+      console.error("sendRating error:", err);
+      alert("حدث خطأ أثناء حفظ التقييم");
+    }
+  };
+
+  // إرسال تعليق (نص فقط - بدون تقييم، غير محدود)
+  window.sendComment = async function (shopId) {
+    try {
+      const commentInput = document.getElementById(`comment-${shopId}`);
+      if (!commentInput) return;
+
+      const commentText = commentInput.value.trim();
+      
+      if (!commentText) {
+        alert("يرجى كتابة تعليق");
+        return;
+      }
+
+      const ok = await saveComment(shopId, commentText);
+
+      if (!ok) {
+        alert("حدث خطأ أثناء حفظ التعليق");
+        return;
+      }
+
+      alert("✅ شكراً لتعليقك");
+      commentInput.value = "";
+
+      // إعادة تحميل التعليقات
+      await loadComments(shopId);
+
+    } catch (err) {
+      console.error("sendComment error:", err);
+      alert("حدث خطأ أثناء حفظ التعليق");
+    }
+  };
+
+  // تحميل وعرض التقييمات (نجوم فقط)
+  async function loadRatings(shopId) {
+    const ratingBox = document.getElementById(`rating-summary-${shopId}`);
+
+    try {
+      const stats = await getRatingStats(shopId);
+      
+      if (ratingBox) {
+        const summaryText = `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
+        ratingBox.textContent = summaryText;
+      }
+
+    } catch (err) {
+      console.error("loadRatings error:", err);
+      if (ratingBox) ratingBox.textContent = "⭐ لا توجد تقييمات";
+    }
+  }
+
+  // تحميل وعرض التعليقات (نص فقط - منفصل عن التقييمات)
+  async function loadComments(shopId) {
+    const box = document.getElementById(`comments-${shopId}`);
+
+    try {
+      const commentsList = await getComments(shopId);
+      const list = Array.isArray(commentsList) ? commentsList : [];
+
+      if (!box) return;
+
+      if (list.length === 0) {
+        box.innerHTML = `<p style="color:#999;font-size:13px;">لا توجد تعليقات بعد</p>`;
+      } else {
+        const renderOne = (c) => `
+          <div style="background:#fff;padding:10px;border-radius:4px;margin-bottom:8px;border-right:2px solid #ffc107;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <strong style="font-size:13px;color:#333;">${c.uid ? "مستخدم" : "زائر"}</strong>
+              <span style="font-size:11px;color:#999;">${new Date(c.createdAt?.toDate?.() || c.createdAt).toLocaleDateString('ar-IQ')}</span>
+            </div>
+            <p style="margin:0;font-size:13px;color:#555;line-height:1.4;">${c.text}</p>
+          </div>
+        `;
+
+        const visible = list.slice(0, 3).map(renderOne).join("");
+        const hidden = list.slice(3).map(renderOne).join("");
+
+        box.innerHTML = `
+          <div>${visible}</div>
+          ${hidden
+            ? `<div class="comments-hidden" style="display:none;margin-top:8px;">${hidden}</div>
+               <button type="button" class="show-more-comments" style="width:100%;padding:8px;background:#ffc107;border:none;border-radius:4px;cursor:pointer;font-size:12px;margin-top:8px;">عرض المزيد (${list.length - 3}+)</button>`
+            : ""
+          }
+        `;
+
+        const moreBtn = box.querySelector(".show-more-comments");
+        if (moreBtn) {
+          moreBtn.addEventListener("click", () => {
+            const hiddenBox = box.querySelector(".comments-hidden");
+            if (hiddenBox) hiddenBox.style.display = "block";
+            moreBtn.style.display = "none";
+          });
         }
       }
 
     } catch (err) {
       console.error("loadComments error:", err);
-      if (box) box.innerHTML = `<p class="no-comments">تعذّر تحميل التعليقات</p>`;
+      if (box) box.innerHTML = `<p style="color:#d32f2f;font-size:13px;">تعذّر تحميل التعليقات</p>`;
     }
   }
 
@@ -1678,6 +1722,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // تصفح المحلات - الذهاب إلى صفحة التصفح الجديدة
+    window.goToShopsDirectory = function () {
+      closeMenu();
+      window.location.href = "registrations.html";
+    }
 
     // الشكاوي
     window.goToComplaints = function () {
