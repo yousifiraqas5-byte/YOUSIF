@@ -6,6 +6,7 @@ import {
   collection,
   addDoc,
   getDocs,
+  deleteDoc,
   serverTimestamp,
   query,
   orderBy,
@@ -156,29 +157,87 @@ export async function saveRecommendation(data) {
 }
 
 // ==========================
-// Comments Functions
+// Ratings Functions (تقييمات فقط - نجوم بدون نص)
 // ==========================
 
-export async function saveComment(data) {
+export async function saveRating(shopId, ratingValue) {
   try {
     const uid = await getCurrentUid();
 
-    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل
-    if (uid && data.shopId) {
-      const dupQuery = query(
-        collection(db, "comments"),
-        where("shopId", "==", data.shopId),
-        where("uid", "==", uid)
-      );
-      const dupSnapshot = await getDocs(dupQuery);
-      if (!dupSnapshot.empty) {
-        return "already-rated";
+    if (!uid || !shopId) {
+      console.error("Missing uid or shopId for rating");
+      return false;
+    }
+
+    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل - حذف التقييم القديم وحفظ الجديد
+    const existingQuery = query(
+      collection(db, "ratings"),
+      where("shopId", "==", shopId),
+      where("uid", "==", uid)
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+
+    if (!existingSnapshot.empty) {
+      // حذف التقييم القديم
+      for (const doc of existingSnapshot.docs) {
+        await deleteDoc(doc.ref);
       }
     }
 
-    const ref = await addDoc(collection(db, "comments"), {
-      ...data,
+    // حفظ التقييم الجديد
+    const ref = await addDoc(collection(db, "ratings"), {
+      shopId: shopId,
+      uid: uid,
+      rating: Number(ratingValue),
+      createdAt: serverTimestamp()
+    });
+
+    console.log('Rating saved:', ref.id);
+    return true;
+
+  } catch (err) {
+    console.error('Failed to save rating:', err);
+    return false;
+  }
+}
+
+export async function getRatings(shopId) {
+  try {
+    const q = query(
+      collection(db, "ratings"),
+      where("shopId", "==", shopId)
+    );
+
+    const snapshot = await getDocs(q);
+    const ratings = [];
+
+    snapshot.forEach((doc) => {
+      ratings.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    return ratings;
+
+  } catch (err) {
+    console.error("Failed to get ratings:", err);
+    return [];
+  }
+}
+
+// ==========================
+// Comments Functions (تعليقات منفصلة - نص فقط بدون نجوم)
+// ==========================
+
+export async function saveComment(shopId, commentText) {
+  try {
+    const uid = await getCurrentUid();
+
+    const ref = await addDoc(collection(db, "commentsList"), {
+      shopId: shopId,
       uid: uid || null,
+      text: commentText,
       createdAt: serverTimestamp()
     });
 
@@ -194,13 +253,12 @@ export async function saveComment(data) {
 export async function getComments(shopId) {
   try {
     const q = query(
-      collection(db, "comments"),
+      collection(db, "commentsList"),
       where("shopId", "==", shopId),
       orderBy("createdAt", "desc")
     );
 
     const snapshot = await getDocs(q);
-
     const comments = [];
 
     snapshot.forEach((doc) => {
@@ -222,23 +280,21 @@ export async function getComments(shopId) {
 // دوال إحصائية التقييم
 // ================================
 export async function getRatingStats(shopId) {
-
   try {
+    const ratings = await getRatings(shopId);
 
-    const comments = await getComments(shopId);
-
-    if (!Array.isArray(comments) || comments.length === 0) {
+    if (!Array.isArray(ratings) || ratings.length === 0) {
       return {
         average: 0,
         votes: 0
       };
     }
 
-    const total = comments.reduce((sum, item) => {
+    const total = ratings.reduce((sum, item) => {
       return sum + (Number(item.rating) || 0);
     }, 0);
 
-    const votes = comments.length;
+    const votes = ratings.length;
     const average = total / votes;
 
     return {
@@ -247,14 +303,10 @@ export async function getRatingStats(shopId) {
     };
 
   } catch (err) {
-
     console.error("Failed to get rating stats:", err);
-
     return {
       average: 0,
       votes: 0
     };
-
   }
-
 }
