@@ -53,7 +53,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // إرجاع هوية المستخدم الحالي (تنتظر اكتمال تسجيل الدخول المجهول إذا لم يكتمل بعد)
-async function getCurrentUid() {
+export async function getCurrentUid() {
   if (auth.currentUser) return auth.currentUser.uid;
   const user = await authReady;
   return user ? user.uid : null;
@@ -133,6 +133,28 @@ return regs;
     return [];
   }
 }
+// ==========================
+// اقتراح/ترشيح محل أو ورشة (بدون تسجيل رسمي)
+// ==========================
+
+export async function saveRecommendation(data) {
+  try {
+    const uid = await getCurrentUid();
+
+    const ref = await addDoc(collection(db, "recommendations"), {
+      ...data,
+      uid: uid || null,
+      createdAt: serverTimestamp()
+    });
+
+    console.log('saveRecommendation: created doc', ref.id);
+    return true;
+  } catch (err) {
+    console.error('Failed to save recommendation:', err);
+    return false;
+  }
+}
+
 // ==========================
 // Comments Functions
 // ==========================

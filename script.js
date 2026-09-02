@@ -5,7 +5,8 @@ import {
   getRegistrations,
   saveComment,
   getComments,
-  getRatingStats
+  getCurrentUid,
+  saveRecommendation
 } from "./firebase.js?v=3";
 
 console.log("🚗 CAR SYSTEM TEST");
@@ -14,6 +15,46 @@ console.log("🚗 CAR SYSTEM TEST");
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
   const list = document.getElementById("shopsList");
+
+  // قسم التقييم والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
+  function renderReviewSection(shopId) {
+    return `
+      <hr>
+      <h4>💬 التقييمات والتعليقات</h4>
+
+      <div class="rating-summary" id="rating-summary-${shopId}">
+        ⭐ 0.0 (0 تقييم)
+      </div>
+
+      <div class="comments-list" id="comments-${shopId}">
+        جارٍ تحميل التعليقات...
+      </div>
+
+      <div class="review-form" id="review-form-${shopId}">
+        <input
+          type="text"
+          id="name-${shopId}"
+          placeholder="اسمك">
+        <textarea
+          id="comment-${shopId}"
+          placeholder="اكتب تعليقك..."></textarea>
+
+        <select id="rating-${shopId}">
+          <option value="5">⭐⭐⭐⭐⭐</option>
+          <option value="4">⭐⭐⭐⭐</option>
+          <option value="3">⭐⭐⭐</option>
+          <option value="2">⭐⭐</option>
+          <option value="1">⭐</option>
+        </select>
+
+        <button
+          class="comment-btn"
+          onclick="sendComment('${shopId}')">
+          إرسال التقييم
+        </button>
+      </div>
+    `;
+  }
 
   async function loadShops() {
     if (!list) return;
@@ -145,36 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button>📞 اتصال</button>
           </a>
 
-          <hr>
-<h4>💬 التقييمات والتعليقات</h4>
-
-<div
-  class="rating-summary"
-  id="rating-summary-${r.id}">
-  ⭐ 0.0 (0 تقييم)
-</div>
-
-<input
-  type="text"
-  id="name-${r.id}"
-  placeholder="اسمك">
-          <textarea
-            id="comment-${r.id}"
-            placeholder="اكتب تعليقك..."></textarea>
-
-          <select id="rating-${r.id}">
-            <option value="5">⭐⭐⭐⭐⭐</option>
-            <option value="4">⭐⭐⭐⭐</option>
-            <option value="3">⭐⭐⭐</option>
-            <option value="2">⭐⭐</option>
-            <option value="1">⭐</option>
-          </select>
-
-          <button
-            class="comment-btn"
-            onclick="sendComment('${r.id}')">
-            إرسال التقييم
-          </button>
+          ${renderReviewSection(r.id)}
 
         </div>
       `;
@@ -245,6 +257,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById("typeModal");
     if (el) el.classList.remove("active");
   };
+
+  // فتح نافذة ترشيح محل أو ورشة
+  window.openRecommendModal = function () {
+    const el = document.getElementById("recommendModal");
+    if (el) el.classList.add("active");
+  };
+
+  // إغلاق نافذة ترشيح محل أو ورشة
+  window.closeRecommendModal = function () {
+    const el = document.getElementById("recommendModal");
+    if (el) el.classList.remove("active");
+  };
+
+  // إرسال نموذج الترشيح
+  const recommendForm = document.getElementById("recommendForm");
+  if (recommendForm) {
+    recommendForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const data = {
+        name: document.getElementById("recName")?.value.trim() || "",
+        phone: document.getElementById("recPhone")?.value.trim() || "",
+        city: document.getElementById("recCity")?.value.trim() || "",
+        reason: document.getElementById("recReason")?.value.trim() || "",
+        recommenderName: document.getElementById("recYourName")?.value.trim() || ""
+      };
+
+      try {
+        const ok = await saveRecommendation(data);
+
+        if (ok) {
+          alert("شكرًا لك! تم إرسال ترشيحك وسنراجعه قريبًا 🙏");
+          recommendForm.reset();
+          window.closeRecommendModal();
+        } else {
+          alert("حدث خطأ أثناء إرسال الترشيح");
+        }
+      } catch (err) {
+        console.error("Error saving recommendation:", err);
+        alert("حدث خطأ غير متوقع");
+      }
+    });
+  }
 
   // اختيار بائع أو صيانة
   window.selectRegistrationType = function (type) {
@@ -911,39 +966,79 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadComments(shopId);
   };
 
-  // تحميل التعليقات وتحديث ملخص التقييم
+  // تحميل التعليقات، تحديث ملخص التقييم، وعرض التعليقات (تعليقين + عرض المزيد)
   async function loadComments(shopId) {
 
-    const stats = await getRatingStats(shopId);
-
-    const ratingBox =
-      document.getElementById(`rating-summary-${shopId}`);
-
-    if (ratingBox) {
-      ratingBox.textContent =
-        `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
-    }
-
-    const ratingBadge =
-      document.getElementById(`rating-badge-${shopId}`);
-
-    if (ratingBadge) {
-      ratingBadge.textContent =
-        `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
-    }
-
-    // ملاحظة: عرض قائمة التعليقات الفردية غير مفعّل حالياً بالواجهة
+    const ratingBox = document.getElementById(`rating-summary-${shopId}`);
+    const ratingBadge = document.getElementById(`rating-badge-${shopId}`);
     const box = document.getElementById(`comments-${shopId}`);
+    const formBox = document.getElementById(`review-form-${shopId}`);
 
-    if (box) {
+    try {
       const comments = await getComments(shopId);
+      const list = Array.isArray(comments) ? comments : [];
 
-      if (!Array.isArray(comments) || comments.length === 0) {
-        box.innerHTML = "لا توجد تعليقات";
-        return;
+      const votes = list.length;
+      const average = votes
+        ? list.reduce((sum, c) => sum + (Number(c.rating) || 0), 0) / votes
+        : 0;
+
+      const summaryText = `⭐ ${average.toFixed(1)} (${votes} تقييم)`;
+
+      if (ratingBox) ratingBox.textContent = summaryText;
+      if (ratingBadge) ratingBadge.textContent = summaryText;
+
+      // عرض التعليقات: أول تعليقين، والباقي خلف زر "عرض المزيد"
+      if (box) {
+        if (votes === 0) {
+          box.innerHTML = `<p class="no-comments">لا توجد تعليقات بعد، كن أول من يقيّم</p>`;
+        } else {
+          const renderOne = (c) => `
+            <div class="comment-item">
+              <div class="comment-header">
+                <span class="comment-name">${c.name || "مستخدم"}</span>
+                <span class="comment-stars">${"⭐".repeat(Number(c.rating) || 0)}</span>
+              </div>
+              ${c.comment ? `<p class="comment-text">${c.comment}</p>` : ""}
+            </div>
+          `;
+
+          const visible = list.slice(0, 2).map(renderOne).join("");
+          const hidden = list.slice(2).map(renderOne).join("");
+
+          box.innerHTML = `
+            <div class="comments-visible">${visible}</div>
+            ${hidden
+              ? `<div class="comments-hidden" style="display:none;">${hidden}</div>
+                 <button type="button" class="show-more-comments">عرض المزيد (${list.length - 2}+)</button>`
+              : ""
+            }
+          `;
+
+          const moreBtn = box.querySelector(".show-more-comments");
+          if (moreBtn) {
+            moreBtn.addEventListener("click", () => {
+              const hiddenBox = box.querySelector(".comments-hidden");
+              if (hiddenBox) hiddenBox.style.display = "block";
+              moreBtn.style.display = "none";
+            });
+          }
+        }
       }
 
-      box.innerHTML = "";
+      // التقييم مسموح مرة واحدة فقط لكل شخص: إخفاء النموذج إن كان قد قيّم سابقًا
+      if (formBox) {
+        const uid = await getCurrentUid();
+        const alreadyRated = uid && list.some(c => c.uid === uid);
+
+        if (alreadyRated) {
+          formBox.innerHTML = `<p class="already-rated-note">✅ لقد قيّمت هذا المحل مسبقًا، شكرًا لك</p>`;
+        }
+      }
+
+    } catch (err) {
+      console.error("loadComments error:", err);
+      if (box) box.innerHTML = `<p class="no-comments">تعذّر تحميل التعليقات</p>`;
     }
   }
 
@@ -982,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // تحديث عدد المحلات لكل تخصص
-      const cards = document.querySelectorAll(".category-card");
+      const cards = document.querySelectorAll(".specialty-row");
 
       cards.forEach(card => {
 
@@ -1006,22 +1101,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 : String(r.specialty || "").trim() === String(specialty || "").trim()
           )
         ).length;
-        let countElement =
-          card.querySelector(".category-count");
 
-        if (!countElement) {
-          countElement = document.createElement("span");
-          countElement.className = "category-count";
+        const countElement = card.querySelector(".specialty-count");
 
-          const heading = card.querySelector("h3");
-
-          if (heading) {
-            heading.appendChild(document.createTextNode(" "));
-            heading.appendChild(countElement);
-          }
+        if (countElement) {
+          countElement.textContent = count;
         }
-
-        countElement.textContent = count;
       });
     } catch (error) {
       console.error("updateCategoryCounts error:", error);
@@ -1041,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         grid.innerHTML = `
       <div
-        class="category-card"
+        class="category-tile"
         onclick="openCategory('maintenance')"
       >
         <div class="category-icon maintenance-icon">
@@ -1052,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div
-        class="category-card"
+        class="category-tile"
         onclick="openCategory('seller')"
       >
         <div class="category-icon sales-icon">
@@ -1063,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
+        grid.classList.remove("specialty-list");
         backButton.style.display = "none";
 
         window.scrollTo({
@@ -1079,147 +1165,168 @@ document.addEventListener('DOMContentLoaded', () => {
     if (type === "maintenance") {
 
       title.textContent = "🔧 خدمات الصيانة";
+      grid.classList.add("specialty-list");
 
       grid.innerHTML = `
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'فني تبريد وتكييف')">
-        <div class="category-icon maintenance-icon">❄️</div>
-        <h3>فني تبريد وتكييف</h3>
-        <p>صيانة أجهزة التبريد والتكييف</p>
+        <span class="specialty-icon">❄️</span>
+        <span class="specialty-name">فني تبريد وتكييف</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'كهربائي سيارات')">
-        <div class="category-icon maintenance-icon">⚡</div>
-        <h3>كهربائي سيارات</h3>
-        <p>الأعمال الكهربائية</p>
+        <span class="specialty-icon">⚡</span>
+        <span class="specialty-name">كهربائي سيارات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'فيتر (ميكانيكي)')">
-        <div class="category-icon maintenance-icon">🔧</div>
-        <h3>فيتر (ميكانيكي)</h3>
-        <p>صيانة ميكانيكية</p>
+        <span class="specialty-icon">🔧</span>
+        <span class="specialty-name">فيتر (ميكانيكي)</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'حداد صدر')">
-        <div class="category-icon maintenance-icon">🔨</div>
-        <h3>حداد صدر</h3>
-        <p>أعمال الحدادة وتصليح الهيكل</p>
+        <span class="specialty-icon">🔨</span>
+        <span class="specialty-name">حداد صدر</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'سمكري')">
-        <div class="category-icon maintenance-icon">🚗</div>
-        <h3>سمكري</h3>
-        <p>تصليح هياكل السيارات</p>
+        <span class="specialty-icon">🚗</span>
+        <span class="specialty-name">سمكري</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'صباغ سيارات')">
-        <div class="category-icon maintenance-icon">🎨</div>
-        <h3>صباغ سيارات</h3>
-        <p>صبغ السيارات</p>
+        <span class="specialty-icon">🎨</span>
+        <span class="specialty-name">صباغ سيارات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'ميزان وبالنص')">
-        <div class="category-icon maintenance-icon">⚙️</div>
-        <h3>ميزان وبالنص</h3>
-        <p>ميزان السيارات والبالنص</p>
+        <span class="specialty-icon">⚙️</span>
+        <span class="specialty-name">ميزان وبالنص</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'تبديل زيت وفلاتر')">
-        <div class="category-icon maintenance-icon">🛢️</div>
-        <h3>تبديل زيت وفلاتر</h3>
-        <p>خدمات الزيوت والفلاتر</p>
+        <span class="specialty-icon">🛢️</span>
+        <span class="specialty-name">تبديل زيت وفلاتر</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'صيانة إيرباك')">
-        <div class="category-icon maintenance-icon">🛡️</div>
-        <h3>صيانة إيرباك</h3>
-        <p>صيانة الوسائد الهوائية</p>
+        <span class="specialty-icon">🛡️</span>
+        <span class="specialty-name">صيانة إيرباك</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'صيانة ABS')">
-        <div class="category-icon maintenance-icon">🚨</div>
-        <h3>صيانة ABS</h3>
-        <p>صيانة نظام ABS</p>
+        <span class="specialty-icon">🚨</span>
+        <span class="specialty-name">صيانة ABS</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'بريكات (دسكات، فلنجات، سفايف)')">
-        <div class="category-icon maintenance-icon">🛞</div>
-        <h3>بريكات</h3>
-        <p>دسكات، فلنجات، سفايف</p>
+        <span class="specialty-icon">🛞</span>
+        <span class="specialty-name">بريكات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'صيانة جير أوتوماتيك')">
-        <div class="category-icon maintenance-icon">⚙️</div>
-        <h3>صيانة جير أوتوماتيك</h3>
-        <p>صيانة نواقل الحركة</p>
+        <span class="specialty-icon">⚙️</span>
+        <span class="specialty-name">صيانة جير أوتوماتيك</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'برمجة وفحص كمبيوتر')">
-        <div class="category-icon maintenance-icon">💻</div>
-        <h3>برمجة وفحص كمبيوتر</h3>
-        <p>فحص وبرمجة السيارات</p>
+        <span class="specialty-icon">💻</span>
+        <span class="specialty-name">برمجة وفحص كمبيوتر</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'بطاريات')">
-        <div class="category-icon maintenance-icon">🔋</div>
-        <h3>بطاريات</h3>
-        <p>بيع وصيانة البطاريات</p>
+        <span class="specialty-icon">🔋</span>
+        <span class="specialty-name">بطاريات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'إطارات وبنجرجي')">
-        <div class="category-icon maintenance-icon">🛞</div>
-        <h3>إطارات وبنجرجي</h3>
-        <p>الإطارات وخدمات البنجرجي</p>
+        <span class="specialty-icon">🛞</span>
+        <span class="specialty-name">إطارات وبنجرجي</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'تبديل زجاج')">
-        <div class="category-icon maintenance-icon">🪟</div>
-        <h3>تبديل زجاج</h3>
-        <p>زجاج السيارات</p>
+        <span class="specialty-icon">🪟</span>
+        <span class="specialty-name">تبديل زجاج</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'صيانة رديتر')">
-        <div class="category-icon maintenance-icon">🌡️</div>
-        <h3>صيانة رديتر</h3>
-        <p>صيانة أنظمة التبريد</p>
+        <span class="specialty-icon">🌡️</span>
+        <span class="specialty-name">صيانة رديتر</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'عادم (إكزوزت)')">
-        <div class="category-icon maintenance-icon">🔧</div>
-        <h3>عادم (إكزوزت)</h3>
-        <p>أنظمة العادم</p>
+        <span class="specialty-icon">🔧</span>
+        <span class="specialty-name">عادم (إكزوزت)</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'مفاتيح سيارات وبرمجة ريموت')">
-        <div class="category-icon maintenance-icon">🔑</div>
-        <h3>مفاتيح وبرمجة ريموت</h3>
-        <p>مفاتيح السيارات والريموت</p>
+        <span class="specialty-icon">🔑</span>
+        <span class="specialty-name">مفاتيح وبرمجة ريموت</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('maintenance', 'تلميع وحماية')">
-        <div class="category-icon maintenance-icon">✨</div>
-        <h3>تلميع وحماية</h3>
-        <p>تلميع وحماية السيارات</p>
+        <span class="specialty-icon">✨</span>
+        <span class="specialty-name">تلميع وحماية</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
     `;
@@ -1227,86 +1334,96 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (type === "seller") {
 
       title.textContent = "🛒 فئات المبيعات";
+      grid.classList.add("specialty-list");
 
       grid.innerHTML = `
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'قطع غيار أصلية')">
-        <div class="category-icon sales-icon">🔩</div>
-        <h3>قطع غيار أصلية</h3>
-        <p>قطع غيار أصلية</p>
+        <span class="specialty-icon">🔩</span>
+        <span class="specialty-name">قطع غيار أصلية</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'قطع غيار تجارية')">
-        <div class="category-icon sales-icon">🔧</div>
-        <h3>قطع غيار تجارية</h3>
-        <p>قطع غيار تجارية</p>
+        <span class="specialty-icon">🔧</span>
+        <span class="specialty-name">قطع غيار تجارية</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'إكسسوارات')">
-        <div class="category-icon sales-icon">🚗</div>
-        <h3>إكسسوارات</h3>
-        <p>إكسسوارات السيارات</p>
+        <span class="specialty-icon">🚗</span>
+        <span class="specialty-name">إكسسوارات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'زيوت')">
-        <div class="category-icon sales-icon">🛢️</div>
-        <h3>زيوت</h3>
-        <p>زيوت السيارات</p>
+        <span class="specialty-icon">🛢️</span>
+        <span class="specialty-name">زيوت</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'بطاريات')">
-        <div class="category-icon sales-icon">🔋</div>
-        <h3>بطاريات</h3>
-        <p>بطاريات السيارات</p>
+        <span class="specialty-icon">🔋</span>
+        <span class="specialty-name">بطاريات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'إطارات')">
-        <div class="category-icon sales-icon">🛞</div>
-        <h3>إطارات</h3>
-        <p>إطارات وعجلات</p>
+        <span class="specialty-icon">🛞</span>
+        <span class="specialty-name">إطارات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'جنوط')">
-        <div class="category-icon sales-icon">⚙️</div>
-        <h3>جنوط</h3>
-        <p>جنوط السيارات</p>
+        <span class="specialty-icon">⚙️</span>
+        <span class="specialty-name">جنوط</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'إنارة')">
-        <div class="category-icon sales-icon">💡</div>
-        <h3>إنارة</h3>
-        <p>إنارة السيارات</p>
+        <span class="specialty-icon">💡</span>
+        <span class="specialty-name">إنارة</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'أجهزة فحص')">
-        <div class="category-icon sales-icon">💻</div>
-        <h3>أجهزة فحص</h3>
-        <p>أجهزة فحص السيارات</p>
+        <span class="specialty-icon">💻</span>
+        <span class="specialty-name">أجهزة فحص</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
       </div>
 
-      <div class="category-card"
+      <div class="specialty-row"
            onclick="showCategoryRegistrations('seller', 'مكيفات سيارات')">
-        <div class="category-icon sales-icon">❄️</div>
-        <h3>مكيفات سيارات</h3>
-        <p>مكيفات وأنظمة تكييف السيارات</p>
-        </div>
+        <span class="specialty-icon">❄️</span>
+        <span class="specialty-name">مكيفات سيارات</span>
+        <span class="specialty-count">0</span>
+        <span class="specialty-arrow">‹</span>
+      </div>
 
 `;
 
-
-
-      updateCategoryCounts(type);
-
     }
+
+    // تحديث عدد المحلات لكل تخصص (يعمل الآن لقسمي الصيانة والمبيعات)
+    updateCategoryCounts(type);
   };
 
     // ==========================================
@@ -1497,9 +1614,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <button>📞 اتصال</button>
             </a>
 
+            ${renderReviewSection(r.id)}
+
           </div>
         `;
         });
+
+        results.forEach(r => loadComments(r.id));
 
         openAsFullPage();
 
@@ -1720,9 +1841,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <button>📞 اتصال</button>
             </a>
 
+            ${renderReviewSection(r.id)}
+
           </div>
         `;
           });
+
+          results.forEach(r => loadComments(r.id));
 
           container.scrollIntoView({
             behavior: "smooth",
