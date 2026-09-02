@@ -9,8 +9,9 @@ import {
   getAllComments,
   saveRating,
   getCurrentUid,
-  saveRecommendation
-} from "./firebase.js?v=4";
+  saveRecommendation,
+  getUserRating
+} from "./firebase.js?v=5";
 
 console.log("🚗 CAR SYSTEM TEST");
 
@@ -132,7 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // نجوم التقييم أعلى يسار بطاقة المحل (ضغطة على نجمة = إرسال مباشر بدون زر)
   function starWidgetHTML(shopId) {
     const starList = [5, 4, 3, 2, 1].map(v =>
-      `<span class="star" data-v="${v}" onclick="rateShop('${shopId}', ${v})">★</span>`
+      `<span class="star" data-v="${v}" onclick="rateShop('${shopId}', ${v})"
+         onmouseover="this.parentNode.querySelectorAll('.star').forEach(s=>{s.classList.toggle('hover',Number(s.dataset.v)<=${v})})"
+         onmouseout="this.parentNode.querySelectorAll('.star').forEach(s=>s.classList.remove('hover'))">★</span>`
     ).join("");
 
     return `
@@ -159,16 +162,17 @@ document.addEventListener('DOMContentLoaded', () => {
             type="text"
             id="cname-${shopId}"
             placeholder="اسمك">
-          <textarea
-            id="comment-${shopId}"
-            placeholder="اكتب تعليقك..."></textarea>
-
-          <button
-            type="button"
-            class="comment-btn"
-            onclick="sendComment('${shopId}')">
-            إرسال التعليق
-          </button>
+          <div class="comment-input-row">
+            <textarea
+              id="comment-${shopId}"
+              placeholder="اكتب تعليقك..."></textarea>
+            <button
+              type="button"
+              class="comment-btn"
+              onclick="sendComment('${shopId}')">
+              إرسال
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1102,18 +1106,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // التقييم من أعلى البطاقة: ضغطة على نجمة تُرسل التقييم مباشرة (بدون زر إرسال)
   window.rateShop = async function (shopId, value) {
+    const widget = document.getElementById(`star-widget-${shopId}`);
+    const previous = widget && widget.dataset.userRating ? Number(widget.dataset.userRating) : null;
+    const starsText = value === 1 ? 'نجمة' : 'نجوم';
 
-    const ok = await saveRating({
+    if (previous) {
+      const ok = window.confirm(`أنت قيّمت هذا المحل مسبقاً بـ ${previous} ${previous === 1 ? 'نجمة' : 'نجوم'}.\nهل تريد تغيير تقييمك إلى ${value} ${starsText}؟`);
+      if (!ok) return;
+    }
+
+    const result = await saveRating({
       shopId,
       rating: value
     });
 
-    if (ok === "already-rated") {
-      alert("لقد قيّمت هذا المحل مسبقًا ⭐");
-      return;
-    }
-
-    if (!ok) {
+    if (!result) {
       alert("حدث خطأ أثناء حفظ التقييم");
       return;
     }
@@ -1145,15 +1152,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // تلوين نجوم الأعلى حسب متوسط التقييم + تمييز من قام بالتقييم مسبقًا
       if (starWidget) {
-        const rounded = Math.round(average);
-        starWidget.querySelectorAll(".star").forEach(s => {
-          const val = Number(s.dataset.v) || 0;
-          s.classList.toggle("selected", val <= rounded);
-        });
+        const userRating = await getUserRating(shopId);
 
-        const uid = await getCurrentUid();
-        const alreadyRated = uid && ratingsList.some(r => r.uid === uid);
-        starWidget.classList.toggle("already-rated", !!alreadyRated);
+        if (userRating) {
+          starWidget.querySelectorAll(".star").forEach(s => {
+            const val = Number(s.dataset.v) || 0;
+            s.classList.toggle("selected", val <= userRating);
+          });
+          starWidget.classList.add("already-rated");
+          starWidget.dataset.userRating = userRating;
+          starWidget.title = `تقييمك الحالي: ${userRating} ${userRating === 1 ? 'نجمة' : 'نجوم'} (اضغط لتعديل)`;
+          if (ratingBadge) ratingBadge.innerHTML = `${summaryText}<br><span class="my-rating-note">⭐ تقييمك: ${userRating} ${userRating === 1 ? 'نجمة' : 'نجوم'}</span>`;
+        } else {
+          const rounded = Math.round(average);
+          starWidget.querySelectorAll(".star").forEach(s => {
+            const val = Number(s.dataset.v) || 0;
+            s.classList.toggle("selected", val <= rounded);
+          });
+          starWidget.classList.remove("already-rated");
+          if (ratingBadge) ratingBadge.textContent = summaryText;
+        }
       }
 
       // 2) التعليقات النصية: بلا حدود (أول تعليقين + عرض المزيد)

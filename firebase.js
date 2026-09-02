@@ -9,7 +9,9 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  where
+  where,
+  doc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 import {
@@ -186,27 +188,23 @@ export async function saveComment(data) {
 export async function saveRating(data) {
   try {
     const uid = await getCurrentUid();
-
-    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل (مرة واحدة فقط)
-    if (uid && data.shopId) {
-      const dupQuery = query(
-        collection(db, "ratings"),
-        where("shopId", "==", data.shopId),
-        where("uid", "==", uid)
-      );
-      const dupSnapshot = await getDocs(dupQuery);
-      if (!dupSnapshot.empty) {
-        return "already-rated";
-      }
+    if (!uid) {
+      console.error("saveRating: no uid");
+      return false;
     }
 
-    const ref = await addDoc(collection(db, "ratings"), {
-      ...data,
-      uid: uid || null,
+    // مفتاح فريد = uid + shopId => مستخدم واحد لا يستطيع تقييم نفس المحل مرتين
+    const docId = `${uid}_${data.shopId}`;
+    const ref = doc(db, "ratings", docId);
+
+    await setDoc(ref, {
+      shopId: data.shopId,
+      rating: data.rating,
+      uid: uid,
       createdAt: serverTimestamp()
     });
 
-    console.log("Rating saved:", ref.id);
+    console.log("Rating saved:", docId);
     return true;
 
   } catch (err) {
@@ -238,6 +236,24 @@ export async function getRatings(shopId) {
   } catch (err) {
     console.error("Failed to get ratings:", err);
     return [];
+  }
+}
+
+// جلب تقييم المستخدم الحالي لمحل معيّن
+export async function getUserRating(shopId) {
+  try {
+    const uid = await getCurrentUid();
+    if (!uid) return null;
+
+    const docId = `${uid}_${shopId}`;
+    const { getDoc } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+    const snap = await getDoc(doc(db, "ratings", docId));
+
+    if (!snap.exists()) return null;
+    return snap.data().rating || null;
+  } catch (err) {
+    console.error("Failed to get user rating:", err);
+    return null;
   }
 }
 
