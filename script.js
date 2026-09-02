@@ -5,12 +5,12 @@ import {
   getRegistrations,
   saveComment,
   getComments,
-  saveRating,
   getRatings,
-  getRatingStats,
+  getAllComments,
+  saveRating,
   getCurrentUid,
   saveRecommendation
-} from "./firebase.js?v=3";
+} from "./firebase.js?v=4";
 
 console.log("🚗 CAR SYSTEM TEST");
 
@@ -19,55 +19,165 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("shopForm");
   const list = document.getElementById("shopsList");
 
-  // قسم التقييمات والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
-  // الآن منفصل: تقييمات (نجوم فقط) + تعليقات (نص منفصل)
+  // تحويل وقت Firestore/تاريخ إلى مللي ثانية للمقارنة
+  function timeToMillis(v) {
+    if (!v) return 0;
+    if (typeof v.toMillis === "function") return v.toMillis();
+    if (typeof v.seconds === "number") return v.seconds * 1000;
+    if (v instanceof Date) return v.getTime();
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // ==========================================
+  // الضغطة المطوّلة على رقم الهاتف (اتصال / نسخ)
+  // لا يوجد زر اتصال؛ فقط ضغطة مطوّلة على الرقم
+  // ==========================================
+  function attachPhoneLongPress(root) {
+    if (!root) return;
+
+    root.querySelectorAll(".shop-phone").forEach(el => {
+      let startX = 0;
+      let startY = 0;
+      let pressed = false;
+      let timer = null;
+
+      const cancel = () => {
+        pressed = false;
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
+
+      el.addEventListener("pointerdown", (e) => {
+        startX = e.clientX;
+        startY = e.clientY;
+        pressed = true;
+
+        timer = setTimeout(() => {
+          timer = null;
+          if (pressed) showPhoneActions(el.dataset.phone, e);
+        }, 600);
+      });
+
+      el.addEventListener("pointermove", (e) => {
+        if (pressed && (Math.abs(e.clientX - startX) > 12 || Math.abs(e.clientY - startY) > 12)) {
+          cancel();
+        }
+      });
+
+      el.addEventListener("pointerup", cancel);
+      el.addEventListener("pointercancel", cancel);
+      el.addEventListener("pointerleave", cancel);
+
+      // لسطح المكتب: الزر الأيمن يعرض نفس الخيارات
+      el.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        cancel();
+        showPhoneActions(el.dataset.phone, e);
+      });
+    });
+  }
+
+  function showPhoneActions(phone, e) {
+    closePhoneActions();
+
+    const overlay = document.createElement("div");
+    overlay.className = "phone-action-overlay";
+    overlay.onclick = closePhoneActions;
+
+    const panel = document.createElement("div");
+    panel.className = "phone-action-panel";
+
+    panel.innerHTML = `
+      <div class="phone-action-title">📞 ${phone}</div>
+      <button type="button" onclick="window.location.href='tel:${phone}'">📞 اتصال</button>
+      <button type="button" onclick="copyPhone('${phone}')">📋 نسخ الرقم</button>
+      <button type="button" class="phone-action-cancel" onclick="closePhoneActions()">إلغاء</button>
+    `;
+
+    const sheet = document.createElement("div");
+    sheet.id = "phoneActionSheet";
+    sheet.className = "phone-action-sheet";
+    sheet.appendChild(overlay);
+    sheet.appendChild(panel);
+
+    document.body.appendChild(sheet);
+  }
+
+  window.closePhoneActions = function () {
+    const sheet = document.getElementById("phoneActionSheet");
+    if (sheet) sheet.remove();
+  };
+
+  window.copyPhone = async function (phone) {
+    try {
+      await navigator.clipboard.writeText(phone);
+    } catch (err) {
+      // بديل للمتصفحات التي لا تدعم الحافظة مباشرة
+      const ta = document.createElement("textarea");
+      ta.value = phone;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e2) { }
+      document.body.removeChild(ta);
+    }
+    closePhoneActions();
+    alert("✅ تم نسخ رقم الهاتف");
+  };
+
+  window.attachPhoneLongPress = attachPhoneLongPress;
+
+  // قسم التقييم والتعليقات المشترك (يُستخدم في كل مكان يُعرض فيه محل)
+  // التقييم والتعلقية منفصلان: التقييم نجمة فقط مرة واحدة، والتعليق نص بلا حدود
   function renderReviewSection(shopId) {
+    const stars = [5, 4, 3, 2, 1].map(v =>
+      `<span class="star selected" data-v="${v}" onclick="pickStar('${shopId}', ${v})">★</span>`
+    ).join("");
+
     return `
       <hr>
-      <h4>⭐ التقييمات والتعليقات</h4>
+      <div class="review-block">
+        <h4>⭐ التقييم</h4>
 
-      <!-- قسم التقييمات (نجوم فقط) -->
-      <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin-bottom:16px;">
-        <h5 style="margin-top:0;margin-bottom:8px;">📊 التقييمات</h5>
-        <div class="rating-summary" id="rating-summary-${shopId}" style="font-size:16px;font-weight:bold;">
+        <div class="rating-summary" id="rating-summary-${shopId}">
           ⭐ 0.0 (0 تقييم)
         </div>
-        <div style="margin-top:8px;">
-          <label for="rating-${shopId}" style="font-size:13px;color:#666;">اختر تقييمك:</label>
-          <select id="rating-${shopId}" style="width:100%;padding:8px;margin-top:4px;border-radius:4px;border:1px solid #ddd;">
-            <option value="">-- اختر التقييم --</option>
-            <option value="5">⭐⭐⭐⭐⭐ ممتاز جداً</option>
-            <option value="4">⭐⭐⭐⭐ ممتاز</option>
-            <option value="3">⭐⭐⭐ جيد</option>
-            <option value="2">⭐⭐ مقبول</option>
-            <option value="1">⭐ سيء</option>
-          </select>
+
+        <div class="rating-form" id="rating-form-${shopId}">
+          <div class="star-select">${stars}</div>
+          <input type="hidden" id="rating-value-${shopId}" value="5">
+          <button
+            type="button"
+            class="comment-btn"
+            onclick="sendRating('${shopId}')">
+            إرسال التقييم
+          </button>
         </div>
-        <button 
-          class="comment-btn" 
-          onclick="sendRating('${shopId}')"
-          style="width:100%;margin-top:8px;padding:10px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;">
-          ✅ حفظ التقييم
-        </button>
       </div>
 
-      <!-- قسم التعليقات (منفصل تماماً) -->
-      <div style="background:#fff9e6;padding:12px;border-radius:8px;margin-bottom:16px;border-right:3px solid #ffc107;">
-        <h5 style="margin-top:0;margin-bottom:8px;">💬 التعليقات</h5>
-        <div class="comments-list" id="comments-${shopId}" style="max-height:250px;overflow-y:auto;margin-bottom:12px;">
+      <div class="review-block">
+        <h4>💬 التعليقات</h4>
+
+        <div class="comments-list" id="comments-${shopId}">
           جارٍ تحميل التعليقات...
         </div>
-        
-        <div class="review-form">
+
+        <div class="review-form" id="comment-form-${shopId}">
+          <input
+            type="text"
+            id="cname-${shopId}"
+            placeholder="اسمك">
           <textarea
             id="comment-${shopId}"
-            placeholder="اكتب تعليقك هنا (اختياري)..."
-            style="width:100%;padding:8px;border-radius:4px;border:1px solid #ddd;resize:vertical;height:70px;"></textarea>
+            placeholder="اكتب تعليقك..."></textarea>
+
           <button
+            type="button"
             class="comment-btn"
-            onclick="sendComment('${shopId}')"
-            style="width:100%;margin-top:8px;padding:10px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;">
-            💬 إضافة تعليق
+            onclick="sendComment('${shopId}')">
+            إرسال التعليق
           </button>
         </div>
       </div>
@@ -90,13 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <p><b>الاختصاص:</b> ${shop.speciality || ''}</p>
             <p><b>المحافظة:</b> ${shop.city || ''}</p>
             <p><b>المنطقة:</b> ${shop.area || ''}</p>
-            <p><b>الهاتف:</b> ${shop.phone || ''}</p>
-            <a href="tel:${shop.phone || ''}">
-                <button>اتصال</button>
-            </a>
+            ${shop.phone
+              ? `<p><b>📞 الهاتف:</b> <span class="shop-phone" data-phone="${shop.phone}">${shop.phone}</span></p>`
+              : ''
+            }
         </div>
         `;
       });
+      attachPhoneLongPress(list);
     } catch (err) {
       console.error('loadShops error:', err);
       if (list) list.innerHTML = '<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>';
@@ -113,6 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const regs = await getRegistrations();
+
+      // ترتيب حسب آخر نشاط: آخر إضافة أو محل صار فيه آخر تعليق يظهر أولاً عند التحديث
+      const allComments = await getAllComments();
+      const latestByShop = {};
+      allComments.forEach(c => {
+        const t = timeToMillis(c.createdAt);
+        if (t > (latestByShop[c.shopId] || 0)) {
+          latestByShop[c.shopId] = t;
+        }
+      });
+
+      regs.forEach(r => {
+        r.__lastActivity = Math.max(
+          timeToMillis(r.createdAt),
+          latestByShop[r.id] || 0
+        );
+      });
+
+      regs.sort((a, b) => (b.__lastActivity || 0) - (a.__lastActivity || 0));
 
       if (!Array.isArray(regs) || regs.length === 0) {
         registrationsContainer.innerHTML =
@@ -163,10 +293,26 @@ document.addEventListener('DOMContentLoaded', () => {
             ${r.region || ""}
           </p>
 
-          <p>
-            <strong>الهاتف:</strong>
-            ${r.phone || ""}
-          </p>
+          ${r.landmark
+            ? `
+                <p>
+                  <strong>📍 أقرب نقطة دالة / الشارع:</strong>
+                  ${r.landmark}
+                </p>
+              `
+            : ""
+          }
+
+          ${r.phone
+            ? `
+                <p>
+                  <strong>📞 الهاتف:</strong>
+                  <span class="shop-phone" data-phone="${r.phone}">${r.phone}</span>
+                  <small class="phone-hint">(ضغطة مطوّلة للاتصال / النسخ)</small>
+                </p>
+              `
+            : ""
+          }
 
           <p>
             <strong>أيام الدوام:</strong>
@@ -200,10 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
             : ""
           }
 
-          <a href="tel:${r.phone || ""}">
-            <button>📞 اتصال</button>
-          </a>
-
           ${renderReviewSection(r.id)}
 
         </div>
@@ -211,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loadComments(r.id);
       });
+
+      // تفعيل الضغطة المطوّلة على أرقام الهواتف
+      attachPhoneLongPress(registrationsContainer);
 
     } catch (err) {
       console.error("loadRegistrations error:", err);
@@ -264,16 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadRegistrations();
 
   // --- Registration modal and form handling ---
-  // فتح نافذة اختيار نوع التسجيل
+  // فتح نموذج التسجيل مباشرة (بدون اختيار نوع مسبق)
   window.openModal = function () {
-    const el = document.getElementById("typeModal");
+    const el = document.getElementById("registrationModal");
     if (el) el.classList.add("active");
-  };
-
-  // إغلاق نافذة اختيار النوع
-  window.closeTypeModal = function () {
-    const el = document.getElementById("typeModal");
-    if (el) el.classList.remove("active");
   };
 
   // فتح نافذة ترشيح محل أو ورشة
@@ -319,19 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // اختيار بائع أو صيانة
-  window.selectRegistrationType = function (type) {
-    const typeEl = document.getElementById("typeModal");
-    if (typeEl) typeEl.classList.remove("active");
-
-    const regType = document.getElementById("regType");
-    if (regType) {
-      regType.value = type;
-    }
-
-    const regModal = document.getElementById("registrationModal");
-    if (regModal) regModal.classList.add("active");
-  };
+  // (أُزيل الاختيار المسبق للفئة — يختار المستخدم الفئة من القائمة داخل النموذج)
   // ================================
   // قائمة تخصصات الصيانة والبيع
   // ================================
@@ -854,10 +981,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // بيانات التسجيل
         const data = {
           name: document.getElementById("name")?.value.trim() || "",
+          phone: document.getElementById("phone")?.value.trim() || "",
           city: document.getElementById("city")?.value.trim() || "",
           region: document.getElementById("region")?.value.trim() || "",
-          street: document.getElementById("street")?.value.trim() || "",
-          phone: document.getElementById("phone")?.value.trim() || "",
+          landmark: document.getElementById("landmark")?.value.trim() || "",
           regType: document.getElementById("regType")?.value || "",
 
           // نخزن التخصصات كـ Array
@@ -871,24 +998,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("📋 بيانات التسجيل:", data);
 
-        // التحقق من الحقول الإجبارية
-        if (!data.name || data.name.length === 0) {
-          alert("❌ يرجى إدخال اسم المحل (حقل إجباري)");
+        // التحقق من البيانات الأساسية (الإجباري فقط: الاسم، المحافظة، المنطقة، الفئة)
+        if (!data.name) {
+          alert("يرجى إدخال اسم المحل");
           return;
         }
 
-        if (!data.city || data.city.length === 0) {
-          alert("❌ يرجى إدخال المحافظة (حقل إجباري)");
+        if (!data.city) {
+          alert("يرجى إدخال المحافظة");
           return;
         }
 
-        if (!data.region || data.region.length === 0) {
-          alert("❌ يرجى إدخال المدينة/المنطقة (حقل إجباري)");
+        if (!data.region) {
+          alert("يرجى إدخال المنطقة");
           return;
         }
 
-        if (!data.regType || data.regType.length === 0) {
-          alert("❌ يرجى اختيار الفئة (حقل إجباري)");
+        if (!data.regType) {
+          alert("يرجى اختيار الفئة");
           return;
         }
 
@@ -954,135 +1081,151 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
   }
-  // إرسال تقييم (نجوم فقط - تقييم واحد لكل مستخدم)
-  window.sendRating = async function (shopId) {
-    try {
-      const ratingSelect = document.getElementById(`rating-${shopId}`);
-      if (!ratingSelect || !ratingSelect.value) {
-        alert("يرجى اختيار تقييم");
-        return;
-      }
-
-      const ratingValue = ratingSelect.value;
-      
-      const ok = await saveRating(shopId, ratingValue);
-
-      if (!ok) {
-        alert("حدث خطأ أثناء حفظ التقييم");
-        return;
-      }
-
-      alert("✅ شكراً لتقييمك");
-      ratingSelect.value = "";
-
-      // إعادة تحميل التقييمات والتعليقات
-      await loadRatings(shopId);
-      await loadComments(shopId);
-
-    } catch (err) {
-      console.error("sendRating error:", err);
-      alert("حدث خطأ أثناء حفظ التقييم");
-    }
-  };
-
-  // إرسال تعليق (نص فقط - بدون تقييم، غير محدود)
+  // إرسال تعليق (نص فقط، بلا حدود)
   window.sendComment = async function (shopId) {
-    try {
-      const commentInput = document.getElementById(`comment-${shopId}`);
-      if (!commentInput) return;
 
-      const commentText = commentInput.value.trim();
-      
-      if (!commentText) {
-        alert("يرجى كتابة تعليق");
-        return;
-      }
+    const name = document.getElementById(`cname-${shopId}`)?.value.trim() || "";
+    const comment = document.getElementById(`comment-${shopId}`)?.value.trim() || "";
 
-      const ok = await saveComment(shopId, commentText);
-
-      if (!ok) {
-        alert("حدث خطأ أثناء حفظ التعليق");
-        return;
-      }
-
-      alert("✅ شكراً لتعليقك");
-      commentInput.value = "";
-
-      // إعادة تحميل التعليقات
-      await loadComments(shopId);
-
-    } catch (err) {
-      console.error("sendComment error:", err);
-      alert("حدث خطأ أثناء حفظ التعليق");
+    if (!comment) {
+      alert("اكتب تعليقك أولاً");
+      return;
     }
+
+    const ok = await saveComment({
+      shopId,
+      name: name || "مستخدم",
+      comment
+    });
+
+    if (!ok) {
+      alert("حدث خطأ أثناء الحفظ");
+      return;
+    }
+
+    const commentBox = document.getElementById(`comment-${shopId}`);
+    if (commentBox) commentBox.value = "";
+
+    const nameBox = document.getElementById(`cname-${shopId}`);
+    if (nameBox) nameBox.value = "";
+
+    await loadComments(shopId);
   };
 
-  // تحميل وعرض التقييمات (نجوم فقط)
-  async function loadRatings(shopId) {
+  // اختيار نجمة التقييم
+  window.pickStar = function (shopId, v) {
+    const hidden = document.getElementById(`rating-value-${shopId}`);
+    if (hidden) hidden.value = v;
+
+    const container = document.getElementById(`rating-form-${shopId}`);
+    const stars = container ? container.querySelectorAll(".star") : [];
+    stars.forEach(s => {
+      const val = Number(s.dataset.v) || 0;
+      s.classList.toggle("selected", val <= v);
+    });
+  };
+
+  // إرسال التقييم (نجمة فقط، مرة واحدة لكل مستخدم)
+  window.sendRating = async function (shopId) {
+
+    const hidden = document.getElementById(`rating-value-${shopId}`);
+    const rating = hidden ? parseInt(hidden.value, 10) : 5;
+
+    const ok = await saveRating({
+      shopId,
+      rating
+    });
+
+    if (ok === "already-rated") {
+      alert("لقد قيّمت هذا المحل مسبقًا ⭐");
+      return;
+    }
+
+    if (!ok) {
+      alert("حدث خطأ أثناء حفظ التقييم");
+      return;
+    }
+
+    await loadComments(shopId);
+  };
+
+  // تحميل التقييمات (ملخص النجمة) والتعليقات النصية بشكل منفصل
+  async function loadComments(shopId) {
+
     const ratingBox = document.getElementById(`rating-summary-${shopId}`);
+    const ratingBadge = document.getElementById(`rating-badge-${shopId}`);
+    const box = document.getElementById(`comments-${shopId}`);
+    const ratingFormBox = document.getElementById(`rating-form-${shopId}`);
 
     try {
-      const stats = await getRatingStats(shopId);
-      
-      if (ratingBox) {
-        const summaryText = `⭐ ${stats.average.toFixed(1)} (${stats.votes} تقييم)`;
-        ratingBox.textContent = summaryText;
+
+      // 1) التقييمات: تُحسب من مجموعة ratings (مرة واحدة لكل مستخدم)
+      const ratings = await getRatings(shopId);
+      const ratingsList = Array.isArray(ratings) ? ratings : [];
+
+      const votes = ratingsList.length;
+      const average = votes
+        ? ratingsList.reduce((sum, c) => sum + (Number(c.rating) || 0), 0) / votes
+        : 0;
+
+      const summaryText = `⭐ ${average.toFixed(1)} (${votes} تقييم)`;
+
+      if (ratingBox) ratingBox.textContent = summaryText;
+      if (ratingBadge) ratingBadge.textContent = summaryText;
+
+      // التقييم مرة واحدة فقط: إخفاء نموذج التقييم إن كان قد قيّم مسبقًا
+      if (ratingFormBox) {
+        const uid = await getCurrentUid();
+        const alreadyRated = uid && ratingsList.some(r => r.uid === uid);
+
+        if (alreadyRated) {
+          ratingFormBox.innerHTML = `<p class="already-rated-note">✅ لقد قيّمت هذا المحل مسبقًا، شكرًا لك</p>`;
+        }
       }
 
-    } catch (err) {
-      console.error("loadRatings error:", err);
-      if (ratingBox) ratingBox.textContent = "⭐ لا توجد تقييمات";
-    }
-  }
+      // 2) التعليقات النصية: بلا حدود (أول تعليقين + عرض المزيد)
+      const comments = await getComments(shopId);
+      const list = Array.isArray(comments) ? comments : [];
 
-  // تحميل وعرض التعليقات (نص فقط - منفصل عن التقييمات)
-  async function loadComments(shopId) {
-    const box = document.getElementById(`comments-${shopId}`);
-
-    try {
-      const commentsList = await getComments(shopId);
-      const list = Array.isArray(commentsList) ? commentsList : [];
-
-      if (!box) return;
-
-      if (list.length === 0) {
-        box.innerHTML = `<p style="color:#999;font-size:13px;">لا توجد تعليقات بعد</p>`;
-      } else {
-        const renderOne = (c) => `
-          <div style="background:#fff;padding:10px;border-radius:4px;margin-bottom:8px;border-right:2px solid #ffc107;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <strong style="font-size:13px;color:#333;">${c.uid ? "مستخدم" : "زائر"}</strong>
-              <span style="font-size:11px;color:#999;">${new Date(c.createdAt?.toDate?.() || c.createdAt).toLocaleDateString('ar-IQ')}</span>
+      if (box) {
+        if (list.length === 0) {
+          box.innerHTML = `<p class="no-comments">لا توجد تعليقات بعد، كن أول من يكتب تعليقًا</p>`;
+        } else {
+          const renderOne = (c) => `
+            <div class="comment-item">
+              <div class="comment-header">
+                <span class="comment-name">${c.name || "مستخدم"}</span>
+              </div>
+              ${c.comment ? `<p class="comment-text">${c.comment}</p>` : ""}
             </div>
-            <p style="margin:0;font-size:13px;color:#555;line-height:1.4;">${c.text}</p>
-          </div>
-        `;
+          `;
 
-        const visible = list.slice(0, 3).map(renderOne).join("");
-        const hidden = list.slice(3).map(renderOne).join("");
+          const visible = list.slice(0, 2).map(renderOne).join("");
+          const hidden = list.slice(2).map(renderOne).join("");
 
-        box.innerHTML = `
-          <div>${visible}</div>
-          ${hidden
-            ? `<div class="comments-hidden" style="display:none;margin-top:8px;">${hidden}</div>
-               <button type="button" class="show-more-comments" style="width:100%;padding:8px;background:#ffc107;border:none;border-radius:4px;cursor:pointer;font-size:12px;margin-top:8px;">عرض المزيد (${list.length - 3}+)</button>`
-            : ""
+          box.innerHTML = `
+            <div class="comments-visible">${visible}</div>
+            ${hidden
+              ? `<div class="comments-hidden" style="display:none;">${hidden}</div>
+                 <button type="button" class="show-more-comments">عرض المزيد (${list.length - 2}+)</button>`
+              : ""
+            }
+          `;
+
+          const moreBtn = box.querySelector(".show-more-comments");
+          if (moreBtn) {
+            moreBtn.addEventListener("click", () => {
+              const hiddenBox = box.querySelector(".comments-hidden");
+              if (hiddenBox) hiddenBox.style.display = "block";
+              moreBtn.style.display = "none";
+            });
           }
-        `;
-
-        const moreBtn = box.querySelector(".show-more-comments");
-        if (moreBtn) {
-          moreBtn.addEventListener("click", () => {
-            const hiddenBox = box.querySelector(".comments-hidden");
-            if (hiddenBox) hiddenBox.style.display = "block";
-            moreBtn.style.display = "none";
-          });
         }
       }
 
     } catch (err) {
       console.error("loadComments error:", err);
-      if (box) box.innerHTML = `<p style="color:#d32f2f;font-size:13px;">تعذّر تحميل التعليقات</p>`;
+      if (box) box.innerHTML = `<p class="no-comments">تعذّر تحميل التعليقات</p>`;
     }
   }
 
@@ -1637,10 +1780,26 @@ document.addEventListener('DOMContentLoaded', () => {
               ${r.region || ""}
             </p>
 
-            <p>
-              <strong>الهاتف:</strong>
-              ${r.phone || ""}
-            </p>
+            ${r.landmark
+              ? `
+                <p>
+                  <strong>📍 أقرب نقطة دالة / الشارع:</strong>
+                  ${r.landmark}
+                </p>
+              `
+              : ""
+            }
+
+            ${r.phone
+              ? `
+                <p>
+                  <strong>📞 الهاتف:</strong>
+                  <span class="shop-phone" data-phone="${r.phone}">${r.phone}</span>
+                  <small class="phone-hint">(ضغطة مطوّلة للاتصال / النسخ)</small>
+                </p>
+              `
+              : ""
+            }
 
             ${r.mapLocation
               ? `
@@ -1654,10 +1813,6 @@ document.addEventListener('DOMContentLoaded', () => {
               : ""
             }
 
-            <a href="tel:${r.phone || ""}">
-              <button>📞 اتصال</button>
-            </a>
-
             ${renderReviewSection(r.id)}
 
           </div>
@@ -1665,6 +1820,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         results.forEach(r => loadComments(r.id));
+
+        // تفعيل الضغطة المطوّلة على أرقام الهواتف
+        attachPhoneLongPress(container);
 
         openAsFullPage();
 
@@ -1722,11 +1880,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // تصفح المحلات - الذهاب إلى صفحة التصفح الجديدة
-    window.goToShopsDirectory = function () {
-      closeMenu();
-      window.location.href = "registrations.html";
-    }
 
     // الشكاوي
     window.goToComplaints = function () {
@@ -1800,6 +1953,7 @@ document.addEventListener('DOMContentLoaded', () => {
               r.phone,
               r.city,
               r.region,
+              r.landmark,
               r.workDays,
               r.workHours,
               r.description,
@@ -1869,10 +2023,26 @@ document.addEventListener('DOMContentLoaded', () => {
               ${r.region || ""}
             </p>
 
-            <p>
-              <strong>الهاتف:</strong>
-              ${r.phone || ""}
-            </p>
+            ${r.landmark
+              ? `
+                <p>
+                  <strong>📍 أقرب نقطة دالة / الشارع:</strong>
+                  ${r.landmark}
+                </p>
+              `
+              : ""
+            }
+
+            ${r.phone
+              ? `
+                <p>
+                  <strong>📞 الهاتف:</strong>
+                  <span class="shop-phone" data-phone="${r.phone}">${r.phone}</span>
+                  <small class="phone-hint">(ضغطة مطوّلة للاتصال / النسخ)</small>
+                </p>
+              `
+              : ""
+            }
 
             ${r.mapLocation
                 ? `
@@ -1886,10 +2056,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 : ""
               }
 
-            <a href="tel:${r.phone || ""}">
-              <button>📞 اتصال</button>
-            </a>
-
             ${renderReviewSection(r.id)}
 
           </div>
@@ -1897,6 +2063,9 @@ document.addEventListener('DOMContentLoaded', () => {
           });
 
           results.forEach(r => loadComments(r.id));
+
+          // تفعيل الضغطة المطوّلة على أرقام الهواتف
+          attachPhoneLongPress(container);
 
           container.scrollIntoView({
             behavior: "smooth",
@@ -1921,7 +2090,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
 
     window.openRegistrationsPage = function () {
-      openAsFullPage();
+      // تحميل قائمة المحلات (بترتيب آخر النشاطات) ثم فتحها كصفحة مستقلة
+      loadRegistrations().then(() => openAsFullPage());
     };
 
     });

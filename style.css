@@ -803,6 +803,114 @@ button:active { transform: scale(0.98); }
   text-align: right;
 }
 
+.review-block { margin: 14px 0; }
+.review-block h4 { margin: 0 0 8px; }
+
+.rating-form { margin-top: 10px; }
+
+.star-select {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  gap: 2px;
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.star {
+  color: var(--line);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.star.selected { color: var(--accent); }
+
+/* رقم الهاتف: ضغطة مطوّلة تُظهر اتصال / نسخ */
+.shop-phone {
+  color: var(--accent-dark);
+  font-weight: 700;
+  direction: ltr;
+  display: inline-block;
+  unicode-bidi: embed;
+  border-bottom: 1px dashed var(--accent);
+  cursor: pointer;
+  padding: 2px 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.phone-hint {
+  display: block;
+  color: var(--steel-light);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* نافذة إجراءات الهاتف (اتصال / نسخ) */
+.phone-action-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.phone-action-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.phone-action-panel {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--paper);
+  border-radius: 18px 18px 0 0;
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+  animation: phoneSheetUp 0.22s ease;
+}
+
+@keyframes phoneSheetUp {
+  from { transform: translateY(40px); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.phone-action-title {
+  text-align: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink-text);
+  direction: ltr;
+  padding: 6px 0;
+}
+
+.phone-action-panel button {
+  border: none;
+  background: var(--field);
+  color: var(--ink-text);
+  padding: 13px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+.phone-action-panel button.phone-action-cancel {
+  background: transparent;
+  color: var(--steel);
+}
+
 /* ==========================================================================
    القائمة الجانبية
    ========================================================================== */

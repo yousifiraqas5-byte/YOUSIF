@@ -195,31 +195,15 @@
   </button>
 
 
-  <button
-    class="nav-item"
-    onclick="goToShopsDirectory()"
-  >
+  <button class="nav-item" onclick="openRegistrationsPage()">
 
     <span class="nav-icon">🔍</span>
 
-    تصفح المحلات
+    التصفح
 
   </button>
 
 </nav>
-
-  <!-- نافذة اختيار نوع التسجيل (تظهر أولاً) -->
-  <div class="modal-overlay type-modal" id="typeModal">
-    <div class="modal">
-      <button class="close-btn" onclick="closeTypeModal()">✕</button>
-      <h2>اختر نوع التسجيل</h2>
-      <p style="margin-bottom:16px; color:var(--steel);">هل تريد التسجيل كبائع أم كخدمة صيانة؟</p>
-      <div style="display:flex; gap:12px; justify-content:center;">
-        <button onclick="selectRegistrationType('seller')" style="background:var(--ink);color:#fff;border:none;padding:11px 20px;border-radius:8px;cursor:pointer;font-weight:700;">🛒 مبيعات</button>
-        <button onclick="selectRegistrationType('maintenance')" style="background:var(--accent);color:#fff;border:none;padding:11px 20px;border-radius:8px;cursor:pointer;font-weight:700;">🛠️ صيانة</button>
-      </div>
-    </div>
-  </div>
 
   <!-- نافذة ترشيح محل أو ورشة -->
   <div class="modal-overlay" id="recommendModal">
@@ -264,136 +248,216 @@
       <button class="close-btn" onclick="closeModal()">✕</button>
       <h2>📋 نموذج التسجيل</h2>
       <form id="registrationForm">
-        
-        <!-- ===== الحقول الإجبارية ===== -->
-        <div style="background:#fff3cd;padding:12px;border-radius:8px;margin-bottom:16px;border-right:4px solid #ffc107;">
-          <p style="margin:0;font-size:13px;color:#856404;"><strong>* علامة النجمة = حقل إجباري</strong></p>
-        </div>
-
         <div class="form-group">
-          <label for="name">🏪 <span style="color:red;">*</span> اسم المحل:</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            placeholder="أدخل اسم المحل">
-        </div>
+  <label for="name">🏪 اسم المحل:</label>
+  <input
+    type="text"
+    id="name"
+    name="name"
+    required
+    placeholder="أدخل اسم المحل">
+</div>
 
-        <div class="form-group">
-          <label for="city">🇮🇶 <span style="color:red;">*</span> المحافظة:</label>
-          <input
-            type="text"
-            id="city"
-            name="city"
-            required
-            placeholder="مثال: بغداد">
-        </div>
+<div class="form-group">
+  <label for="city">🇮🇶 المحافظة:</label>
+  <input
+    type="text"
+    id="city"
+    name="city"
+    required
+    placeholder="مثال: بغداد">
+</div>
 
-        <div class="form-group">
-          <label for="region">📍 <span style="color:red;">*</span> المدينة / المنطقة:</label>
-          <input
-            type="text"
-            id="region"
-            name="region"
-            required
-            placeholder="مثال: الكرادة">
-        </div>
+<div class="form-group">
+  <label for="region">📍 المدينة / المنطقة:</label>
+  <input
+    type="text"
+    id="region"
+    name="region"
+    required
+    placeholder="مثال: الكرادة">
+</div>
 
-        <div class="form-group">
-          <label for="regType">🏷️ <span style="color:red;">*</span> الفئة:</label>
-          <select id="regType" name="regType" required>
-            <option value="">اختر الفئة...</option>
-            <option value="maintenance">🔧 صيانة</option>
-            <option value="seller">🛒 بيع</option>
-            <option value="both">🔧🛒 صيانة + بيع</option>
-          </select>
-        </div>
+<div class="form-group">
+  <label for="landmark">📍 أقرب نقطة دالة أو اسم الشارع (اختياري):</label>
+  <input
+    type="text"
+    id="landmark"
+    name="landmark"
+    placeholder="مثال: مقابل جامع النور، شارع 14 رمضان">
+</div>
 
-        <div class="form-group" id="specialtyGroup" style="display: none;">
-          <label>🛠️ التخصصات:</label>
-          <div id="specialtyOptions" class="specialty-options"></div>
-          <small class="specialty-help">
-            ☑️ يمكنك اختيار أكثر من تخصص
-          </small>
-        </div>
+<div class="form-group">
+  <label for="phone">📞 رقم الهاتف (اختياري):</label>
+  <input
+    type="tel"
+    id="phone"
+    name="phone"
+    placeholder="مثال: 07812345678">
+</div>
 
-        <!-- ===== الحقول الاختيارية ===== -->
-        <hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0;">
+<div class="form-group">
+  <label for="regType">🏷️ الفئة:</label>
+  <select id="regType" name="regType" required>
+    <option value="">اختر الفئة</option>
+    <option value="maintenance">🔧 صيانة</option>
+    <option value="seller">🛒 بيع</option>
+    <option value="both">🔧🛒 صيانة + بيع</option>
+  </select>
+</div>
+<div class="form-group" id="specialtyGroup" style="display: none;">
+  <label>🛠️ التخصصات:</label>
 
-        <div style="background:#e8f5e9;padding:12px;border-radius:8px;margin-bottom:16px;border-right:4px solid #4caf50;">
-          <p style="margin:0;font-size:13px;color:#2e7d32;"><strong>الحقول التالية اختيارية</strong></p>
-        </div>
+  <div id="specialtyOptions" class="specialty-options"></div>
 
-        <div class="form-group">
-          <label for="street">🛣️ الشارع / النقطة الدالة:</label>
-          <input
-            type="text"
-            id="street"
-            name="street"
-            placeholder="مثال: شارع الرشيد، بالقرب من المسجد">
-        </div>
+  <small class="specialty-help">
+    ☑️ يمكنك اختيار أكثر من تخصص
+  </small>
+</div>
+<div class="form-group">
+  <label for="workDays">📅 أيام الدوام:</label>
+  <input
+    type="text"
+    id="workDays"
+    name="workDays"
+    placeholder="مثال: السبت - الخميس">
+</div>
 
-        <div class="form-group">
-          <label for="phone">📞 رقم الهاتف:</label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            placeholder="مثال: 07812345678">
-        </div>
+<div class="form-group">
+  <label for="workHours">🕐 أوقات الدوام:</label>
+  <input
+    type="text"
+    id="workHours"
+    name="workHours"
+    placeholder="مثال: 8:00 صباحًا - 6:00 مساءً">
+</div>
 
-        <div class="form-group">
-          <label for="workDays">📅 أيام الدوام:</label>
-          <input
-            type="text"
-            id="workDays"
-            name="workDays"
-            placeholder="مثال: السبت - الخميس">
-        </div>
+<div class="form-group">
+  <label for="mapLocation">🗺️ الموقع على الخريطة:</label>
+  <input
+    type="url"
+    id="mapLocation"
+    name="mapLocation"
+    placeholder="رابط الموقع على Google Maps (اختياري)">
+</div>
 
-        <div class="form-group">
-          <label for="workHours">🕐 أوقات الدوام:</label>
-          <input
-            type="text"
-            id="workHours"
-            name="workHours"
-            placeholder="مثال: 8:00 صباحًا - 6:00 مساءً">
-        </div>
+<div class="form-group">
+  <label for="description">📝 وصف مختصر:</label>
+  <textarea
+    id="description"
+    name="description"
+    placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
+</div>
+<!-- ============================= -->
+<!-- معلومات السيارات -->
+<!-- ============================= -->
 
-        <div class="form-group">
-          <label for="description">📝 وصف مختصر:</label>
-          <textarea
-            id="description"
-            name="description"
-            placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
-        </div>
+<div class="form-group" id="carOriginGroup">
 
-        <div class="form-group">
-          <label for="mapLocation">🗺️ الموقع على الخريطة:</label>
-          <input
-            type="url"
-            id="mapLocation"
-            name="mapLocation"
-            placeholder="رابط الموقع على Google Maps (اختياري)">
-        </div>
+  <label>🚗 منشأ السيارات:</label>
 
-        <button type="submit" class="btn-submit">
-          ✅ تسجيل المحل
-        </button>
+  <div id="carOriginOptions" class="specialty-options">
 
-      </form>
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="كوري">
+      <span>🇰🇷 كوري</span>
+    </label>
 
-    </div>
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="أمريكي">
+      <span>🇺🇸 أمريكي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="ياباني">
+      <span>🇯🇵 ياباني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="ألماني">
+      <span>🇩🇪 ألماني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="صيني">
+      <span>🇨🇳 صيني</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="فرنسي">
+      <span>🇫🇷 فرنسي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="إيطالي">
+      <span>🇮🇹 إيطالي</span>
+    </label>
+
+    <label class="specialty-checkbox">
+      <input type="checkbox" name="carOrigins" value="بريطاني">
+      <span>🇬🇧 بريطاني</span>
+    </label>
+
   </div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من منشأ
+  </small>
+
+</div>
+
+<div class="form-group" id="carBrandGroup" style="display: none;">
+
+  <label>🏷️ شركات السيارات:</label>
+
+  <div id="carBrandOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من شركة
+  </small>
+
+</div>
+
+<div class="form-group" id="carModelGroup" style="display: none;">
+
+  <label>🚘 موديلات السيارات:</label>
+
+  <div id="carModelOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من موديل
+  </small>
+
+</div>
+
+<div class="form-group" id="carYearGroup" style="display: none;">
+
+  <label>📅 سنوات الموديلات:</label>
+
+  <div id="carYearOptions" class="specialty-options"></div>
+
+  <small class="specialty-help">
+    اختياري — يمكنك اختيار أكثر من سنة
+  </small>
+
+</div>
+ 
+<button type="submit" class="btn-submit">
+  ✅ تسجيل المحل
+</button>
+
+</form>
+
+</div>
+</div>
 
 </div>
 
 <div id="registrationsList" class="registrations-container" style="display:none;">      <!-- هنا ستُعرض قائمة المحلات تلقائياً -->
     </div>
 
-<script type="module" src="script.js?v=4"></script>
+<script type="module" src="script.js?v=5"></script>
 
-  يوسف غسان 
+
 
   

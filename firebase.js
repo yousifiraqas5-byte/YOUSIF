@@ -6,7 +6,6 @@ import {
   collection,
   addDoc,
   getDocs,
-  deleteDoc,
   serverTimestamp,
   query,
   orderBy,
@@ -157,46 +156,61 @@ export async function saveRecommendation(data) {
 }
 
 // ==========================
-// Ratings Functions (تقييمات فقط - نجوم بدون نص)
+// Comments Functions
 // ==========================
 
-export async function saveRating(shopId, ratingValue) {
+export async function saveComment(data) {
   try {
     const uid = await getCurrentUid();
 
-    if (!uid || !shopId) {
-      console.error("Missing uid or shopId for rating");
-      return false;
-    }
-
-    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل - حذف التقييم القديم وحفظ الجديد
-    const existingQuery = query(
-      collection(db, "ratings"),
-      where("shopId", "==", shopId),
-      where("uid", "==", uid)
-    );
-    const existingSnapshot = await getDocs(existingQuery);
-
-    if (!existingSnapshot.empty) {
-      // حذف التقييم القديم
-      for (const doc of existingSnapshot.docs) {
-        await deleteDoc(doc.ref);
-      }
-    }
-
-    // حفظ التقييم الجديد
-    const ref = await addDoc(collection(db, "ratings"), {
-      shopId: shopId,
-      uid: uid,
-      rating: Number(ratingValue),
+    // التعليقات بلا حدود: لا يوجد فحص تكرار هنا
+    const ref = await addDoc(collection(db, "comments"), {
+      ...data,
+      uid: uid || null,
       createdAt: serverTimestamp()
     });
 
-    console.log('Rating saved:', ref.id);
+    console.log("Comment saved:", ref.id);
     return true;
 
   } catch (err) {
-    console.error('Failed to save rating:', err);
+    console.error("Failed to save comment:", err);
+    return false;
+  }
+}
+
+// ================================
+// دوال التقييمات (منفصلة عن التعليقات)
+// التقييم: نجمة فقط، مرة واحدة لكل مستخدم
+// ================================
+export async function saveRating(data) {
+  try {
+    const uid = await getCurrentUid();
+
+    // فحص إذا كان هذا المستخدم قيّم نفس المحل من قبل (مرة واحدة فقط)
+    if (uid && data.shopId) {
+      const dupQuery = query(
+        collection(db, "ratings"),
+        where("shopId", "==", data.shopId),
+        where("uid", "==", uid)
+      );
+      const dupSnapshot = await getDocs(dupQuery);
+      if (!dupSnapshot.empty) {
+        return "already-rated";
+      }
+    }
+
+    const ref = await addDoc(collection(db, "ratings"), {
+      ...data,
+      uid: uid || null,
+      createdAt: serverTimestamp()
+    });
+
+    console.log("Rating saved:", ref.id);
+    return true;
+
+  } catch (err) {
+    console.error("Failed to save rating:", err);
     return false;
   }
 }
@@ -209,6 +223,7 @@ export async function getRatings(shopId) {
     );
 
     const snapshot = await getDocs(q);
+
     const ratings = [];
 
     snapshot.forEach((doc) => {
@@ -226,39 +241,43 @@ export async function getRatings(shopId) {
   }
 }
 
-// ==========================
-// Comments Functions (تعليقات منفصلة - نص فقط بدون نجوم)
-// ==========================
-
-export async function saveComment(shopId, commentText) {
+// جلب كل التعليقات (تُستخدم لترتيب المحلات حسب آخر نشاط)
+export async function getAllComments() {
   try {
-    const uid = await getCurrentUid();
+    const q = query(
+      collection(db, "comments"),
+      orderBy("createdAt", "desc")
+    );
 
-    const ref = await addDoc(collection(db, "commentsList"), {
-      shopId: shopId,
-      uid: uid || null,
-      text: commentText,
-      createdAt: serverTimestamp()
+    const snapshot = await getDocs(q);
+
+    const all = [];
+
+    snapshot.forEach((doc) => {
+      all.push({
+        id: doc.id,
+        ...doc.data()
+      });
     });
 
-    console.log("Comment saved:", ref.id);
-    return true;
+    return all;
 
   } catch (err) {
-    console.error("Failed to save comment:", err);
-    return false;
+    console.error("Failed to get all comments:", err);
+    return [];
   }
 }
 
 export async function getComments(shopId) {
   try {
     const q = query(
-      collection(db, "commentsList"),
+      collection(db, "comments"),
       where("shopId", "==", shopId),
       orderBy("createdAt", "desc")
     );
 
     const snapshot = await getDocs(q);
+
     const comments = [];
 
     snapshot.forEach((doc) => {
@@ -280,7 +299,9 @@ export async function getComments(shopId) {
 // دوال إحصائية التقييم
 // ================================
 export async function getRatingStats(shopId) {
+
   try {
+
     const ratings = await getRatings(shopId);
 
     if (!Array.isArray(ratings) || ratings.length === 0) {
@@ -303,10 +324,14 @@ export async function getRatingStats(shopId) {
     };
 
   } catch (err) {
+
     console.error("Failed to get rating stats:", err);
+
     return {
       average: 0,
       votes: 0
     };
+
   }
+
 }
