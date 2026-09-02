@@ -26,7 +26,7 @@
 
   </div>
 <script type="module">
-  import { getRegistrations } from "./firebase.js";
+  import { getRegistrations, getShops } from "./firebase.js";
 
   // دالة معالجة Long Press على الرقم
   let pressTimer = null;
@@ -124,35 +124,51 @@
   const container = document.getElementById("registrationsList");
   const pageTitle = document.getElementById("pageTitle");
 
+  // تحديث العنوان بناءً على التصفية
   if (specialty) {
     pageTitle.textContent = specialty;
+  } else if (type) {
+    const typeLabel = type === "maintenance" ? "🔧 خدمات الصيانة" : "🛒 المبيعات";
+    pageTitle.textContent = typeLabel;
+  } else {
+    pageTitle.textContent = "جميع المحلات";
   }
 
   try {
     const regs = await getRegistrations();
+    const shops = await getShops();
+    
+    // دمج البيانات من المصدرين
+    const allRegs = [...regs, ...shops];
+    console.log("🔍 DEBUG: Registrations:", regs.length, "Shops:", shops.length, "Combined:", allRegs.length);
 
-    const filtered = regs.filter(r => {
+    // إذا لم يكن هناك type أو specialty (دخول مباشر)، عرض جميع المحلات
+    let filtered = allRegs;
 
-      const sameType =
-        r.regType === type ||
-        r.regType === "both";
+    // تطبيق الفلاتر إذا كانت موجودة
+    if (type || specialty) {
+      filtered = allRegs.filter(r => {
+        const sameType = !type || r.regType === type || r.regType === "both";
 
-      const sameSpecialty =
-        !specialty ||
-        (
-          Array.isArray(r.specialties)
-            ? r.specialties.includes(specialty)
-            : String(r.specialty || "").trim() ===
-              String(specialty || "").trim()
-        );
+        const sameSpecialty =
+          !specialty ||
+          (
+            Array.isArray(r.specialties)
+              ? r.specialties.includes(specialty)
+              : String(r.specialty || "").trim() ===
+                String(specialty || "").trim()
+          );
 
-      return sameType && sameSpecialty;
-    });
+        return sameType && sameSpecialty;
+      });
+    }
+
+    console.log("🔍 DEBUG: Filtered results:", filtered.length);
 
     if (filtered.length === 0) {
       container.innerHTML = `
         <div class="no-registrations">
-          لا توجد محلات مسجلة في هذا التخصص حتى الآن
+          لا توجد محلات مسجلة حتى الآن
         </div>
       `;
       return;
