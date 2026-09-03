@@ -215,6 +215,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function attachCardToggle(root) {
+    if (!root) return;
+    root.querySelectorAll(".card-toggle-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const extra = btn.previousElementSibling;
+        if (!extra || !extra.classList.contains("card-extra")) return;
+        const open = extra.style.display !== "none";
+        extra.style.display = open ? "none" : "block";
+        btn.textContent = open ? "▼ عرض التفاصيل" : "▲ إخفاء التفاصيل";
+      });
+    });
+  }
+
   const registrationsContainer = document.getElementById('registrationsList');
 
   async function loadRegistrations() {
@@ -266,19 +279,25 @@ document.addEventListener('DOMContentLoaded', () => {
           <p><strong>التخصصات:</strong> ${escapeHTML(specialties)}</p>
           <p><strong>المحافظة:</strong> ${escapeHTML(r.city || "")}</p>
           <p><strong>المنطقة:</strong> ${escapeHTML(r.region || "")}</p>
-          ${r.landmark ? `<p><strong>📍 أقرب نقطة دالة / الشارع:</strong> ${escapeHTML(r.landmark)}</p>` : ""}
-          ${safePhone ? `<p><strong>📞 الهاتف:</strong> <span class="shop-phone" data-phone="${escapeHTML(safePhone)}">${escapeHTML(safePhone)}</span> <small class="phone-hint">(ضغطة مطوّلة للاتصال / النسخ)</small></p>` : ""}
-          <p><strong>أيام الدوام:</strong> ${escapeHTML(r.workDays || "غير محدد")}</p>
-          <p><strong>أوقات الدوام:</strong> ${escapeHTML(r.workHours || "غير محدد")}</p>
-          ${r.mapLocation && isSafeUrl(r.mapLocation) ? `<p><strong>🗺️ الموقع:</strong> <a href="${escapeHTML(r.mapLocation)}" target="_blank" rel="noopener noreferrer">فتح الموقع على الخريطة 📍</a></p>` : ""}
-          ${r.description ? `<p><strong>📝 الوصف:</strong> ${escapeHTML(r.description)}</p>` : ""}
-          ${renderReviewSection(r.id)}
+          ${safePhone ? `<p><strong>📞 الهاتف:</strong> <span class="shop-phone" data-phone="${escapeHTML(safePhone)}">${escapeHTML(safePhone)}</span></p>` : ""}
+
+          <div class="card-extra" style="display:none">
+            ${r.landmark ? `<p><strong>📍 أقرب نقطة دالة / الشارع:</strong> ${escapeHTML(r.landmark)}</p>` : ""}
+            <p><strong>أيام الدوام:</strong> ${escapeHTML(r.workDays || "غير محدد")}</p>
+            <p><strong>أوقات الدوام:</strong> ${escapeHTML(r.workHours || "غير محدد")}</p>
+            ${r.mapLocation && isSafeUrl(r.mapLocation) ? `<p><strong>🗺️ الموقع:</strong> <a href="${escapeHTML(r.mapLocation)}" target="_blank" rel="noopener noreferrer">فتح الموقع على الخريطة 📍</a></p>` : ""}
+            ${r.description ? `<p><strong>📝 الوصف:</strong> ${escapeHTML(r.description)}</p>` : ""}
+            ${renderReviewSection(r.id)}
+          </div>
+
+          <button type="button" class="card-toggle-btn">▼ عرض التفاصيل</button>
         </div>`;
       });
 
       attachPhoneLongPress(registrationsContainer);
       attachStarWidgetEvents(registrationsContainer);
       attachCommentButtons(registrationsContainer);
+      attachCardToggle(registrationsContainer);
       regs.forEach(r => loadComments(r.id));
     } catch (err) {
       registrationsContainer.innerHTML = `<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>`;
@@ -293,11 +312,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (form) {
-    // إظهار/إخفاء حقل التخصصات حسب الفئة المختارة (صيانة/بيع/كلاهما).
     const regTypeSelect = document.getElementById("regType");
     const specialtyGroup = document.getElementById("specialtyGroup");
+    const specialtyOptions = document.getElementById("specialtyOptions");
+
+    const regMaintenance = [
+      "فني تبريد وتكييف", "كهربائي سيارات", "فيتر (ميكانيكي)", "حداد صدر",
+      "سمكري", "صباغ سيارات", "ميزان وبالنص", "تبديل زيت وفلاتر",
+      "صيانة إيرباك", "صيانة ABS", "بريكات", "صيانة جير أوتوماتيك",
+      "برمجة وفحص كمبيوتر", "بطاريات", "إطارات وبنجرجي", "تبديل زجاج",
+      "صيانة رديتر", "عادم (إكزوزت)", "مفاتيح سيارات وبرمجة ريموت", "تلميع وحماية"
+    ];
+    const regSeller = [
+      "قطع غيار", "إكسسوارات", "زيوت وفلاتر", "بطاريات",
+      "إطارات", "جنوط", "إنارة", "أجهزة فحص"
+    ];
+
+    const fillSpecialties = () => {
+      if (!regTypeSelect || !specialtyOptions) return;
+      const type = regTypeSelect.value;
+      specialtyOptions.innerHTML = "";
+      const list = type === "maintenance" ? regMaintenance :
+                    type === "seller" ? regSeller :
+                    type === "both" ? [...regMaintenance, ...regSeller] : [];
+      list.forEach(s => {
+        const id = "spec_" + s.replace(/[^\w]/g, "_");
+        specialtyOptions.insertAdjacentHTML("beforeend",
+          `<label class="specialty-checkbox" for="${id}">
+            <input type="checkbox" id="${id}" name="specialties" value="${s}">
+            <span>${s}</span>
+          </label>`);
+      });
+    };
+
     if (regTypeSelect && specialtyGroup) {
       regTypeSelect.addEventListener("change", () => {
+        fillSpecialties();
         specialtyGroup.style.display = regTypeSelect.value ? "" : "none";
       });
     }
@@ -311,6 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!name || !city || !region) {
         alert("الرجاء تعبئة الحقول المطلوبة: اسم المحل، المحافظة، المنطقة");
+        return;
+      }
+
+      const selectedSpecialties = getCheckedValues("specialties");
+      if (selectedSpecialties.length === 0) {
+        alert("الرجاء اختيار تخصص واحد على الأقل");
         return;
       }
 
@@ -549,11 +605,71 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  window.openRegistrationsPage = function () {
-    loadRegistrations().then(() => window.openAsFullPage());
+window.showCategoryRegistrations = async function (type, specialty) {
+    const container = document.getElementById("registrationsList");
+    if (!container) return;
+    container.innerHTML = "🔍 جارٍ التحميل...";
+
+    if (typeof window.openAsFullPage === "function") window.openAsFullPage();
+
+    try {
+      const regs = await getRegistrations();
+      const results = regs.filter(r => {
+        if (specialty === "__all__") return r.regType === type || r.regType === "both";
+        if (r.regType !== type && r.regType !== "both") return false;
+        if (Array.isArray(r.specialties)) return r.specialties.includes(specialty);
+        if (Array.isArray(r.specialty)) return r.specialty.includes(specialty);
+        return String(r.specialty || "").trim() === String(specialty || "").trim();
+      });
+
+      if (results.length === 0) {
+        container.innerHTML = `<div class="no-registrations">لا توجد محلات مسجلة ضمن: <strong>${specialty === "__all__" ? "هذا القسم" : specialty}</strong></div>`;
+        if (typeof window.openAsFullPage === "function") window.openAsFullPage();
+        return;
+      }
+
+      container.innerHTML = "";
+      results.forEach(r => {
+        const typeLabel =
+          r.regType === "seller" ? "🛒 بيع" :
+          r.regType === "maintenance" ? "🔧 صيانة" :
+          r.regType === "both" ? "🔧🛒 صيانة + بيع" : (r.regType || "");
+        const specialties = Array.isArray(r.specialties) ? r.specialties.join("، ") : (r.specialty || "غير محدد");
+
+        container.innerHTML += `
+        <div class="registration-card">
+          <h3>
+            <span class="shop-name">${r.name || r.shopName || "بدون اسم"}</span>
+            ${starWidgetHTML(r.id)}
+          </h3>
+          <p><strong>الفئة:</strong> ${typeLabel}</p>
+          <p><strong>التخصصات:</strong> ${specialties}</p>
+          <p><strong>المحافظة:</strong> ${r.city || ""}</p>
+          <p><strong>المنطقة:</strong> ${r.region || ""}</p>
+          <div class="card-extra" style="display:none">
+            ${r.landmark ? `<p><strong>📍 أقرب نقطة دالة / الشارع:</strong> ${r.landmark}</p>` : ""}
+            ${r.phone ? `<p><strong>📞 الهاتف:</strong> <span class="shop-phone" data-phone="${r.phone}">${r.phone}</span></p>` : ""}
+            ${r.mapLocation ? `<p><strong>🗺️ الموقع:</strong> <a href="${r.mapLocation}" target="_blank">فتح الموقع على الخريطة 📍</a></p>` : ""}
+            ${renderReviewSection(r.id)}
+          </div>
+          <button type="button" class="card-toggle-btn">▼ عرض التفاصيل</button>
+        </div>`;
+        loadComments(r.id);
+      });
+
+      attachPhoneLongPress(container);
+      attachCardToggle(container);
+      if (typeof window.openAsFullPage === "function") window.openAsFullPage();
+    } catch (err) {
+      container.innerHTML = `<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>`;
+    }
   };
 
-  window.openCategory = function (type) {
+  window.openRegistrationsPage = function () {
+    loadRegistrations().then(() => window.openAsFullPage && window.openAsFullPage());
+  };
+
+window.openCategory = async function (type) {
     const title = document.querySelector(".section-title");
     const grid = document.querySelector(".category-grid");
     const backButton = document.getElementById("backToHome");
@@ -561,35 +677,98 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error("category elements not found");
       return;
     }
+
+    const maintenanceSpecialties = [
+      "فني تبريد وتكييف",
+      "كهربائي سيارات",
+      "فيتر (ميكانيكي)",
+      "حداد صدر",
+      "سمكري",
+      "صباغ سيارات",
+      "ميزان وبالنص",
+      "تبديل زيت وفلاتر",
+      "صيانة إيرباك",
+      "صيانة ABS",
+      "بريكات (دسكات، فلنجات، سفايف)",
+      "صيانة جير أوتوماتيك",
+      "برمجة وفحص كمبيوتر",
+      "بطاريات",
+      "إطارات وبنجرجي",
+      "تبديل زجاج",
+      "صيانة رديتر",
+      "عادم (إكزوزت)",
+      "مفاتيح سيارات وبرمجة ريموت",
+      "تلميع وحماية"
+    ];
+    const sellerSpecialties = [
+      "قطع غيار",
+      "إكسسوارات",
+      "زيوت وفلاتر",
+      "بطاريات",
+      "إطارات",
+      "جنوط",
+      "إنارة",
+      "أجهزة فحص"
+    ];
+
     if (backButton) {
       backButton.style.display = "block";
       backButton.onclick = function () {
         title.textContent = "الأقسام";
         grid.innerHTML = `
-      <div class="category-tile" data-category="maintenance">
+      <div class="category-tile" onclick="openCategory('maintenance')">
         <div class="category-icon maintenance-icon">🔧</div>
         <h3>الصيانة</h3>
         <p>خدمات الصيانة والإصلاح</p>
       </div>
-      <div class="category-tile" data-category="seller">
+      <div class="category-tile" onclick="openCategory('seller')">
         <div class="category-icon sales-icon">🛒</div>
         <h3>المبيعات</h3>
         <p>المحلات والبائعين</p>
       </div>`;
-        grid.querySelectorAll(".category-tile").forEach(tile => {
-          tile.addEventListener("click", () => window.openCategory(tile.dataset.category));
-        });
         grid.classList.remove("specialty-list");
         backButton.style.display = "none";
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
     }
+
+    const specialties = type === "maintenance" ? maintenanceSpecialties :
+                       type === "seller" ? sellerSpecialties : [];
+
+    let allRegs = [];
+    try {
+      allRegs = await getRegistrations();
+    } catch (e) { allRegs = []; }
+
+    const countFor = (s) => allRegs.filter(r =>
+      (r.regType === type || r.regType === "both") &&
+      (Array.isArray(r.specialties) ? r.specialties.includes(s) :
+       Array.isArray(r.specialty) ? r.specialty.includes(s) :
+       String(r.specialty || "").trim() === s)
+    ).length;
+
+    const totalCount = allRegs.filter(r => r.regType === type || r.regType === "both").length;
+
     title.textContent = type === "maintenance" ? "🔧 خدمات الصيانة" : "🛒 فئات المبيعات";
     grid.classList.add("specialty-list");
-    // ملاحظة: عرض قائمة الاختصاصات الفعلية لهذا القسم يحتاج بيانات
-    // (أسماء اختصاصات/تصنيفات) غير متوفرة حاليًا في المشروع. حالما تُحدَّد
-    // هذه القوائم يمكن إضافتها هنا بدل شاشة الانتظار هذه.
-    grid.innerHTML = `<div class="no-registrations">قسم "${escapeHTML(title.textContent)}" قيد الإعداد</div>`;
+
+    const allBtn = `<div class="specialty-row" onclick="showCategoryRegistrations('${type}', '__all__')">
+        <span class="specialty-icon">📋</span>
+        <span class="specialty-name" style="font-weight:bold">عرض جميع المحلات</span>
+        <span class="specialty-count">${totalCount}</span>
+        <span class="specialty-arrow">‹</span>
+      </div>`;
+
+    grid.innerHTML = allBtn + specialties.map(s => {
+      const c = countFor(s);
+      return `<div class="specialty-row" onclick="showCategoryRegistrations('${type}', '${s}')">
+        <span class="specialty-icon">${type === "maintenance" ? "🔧" : "🛒"}</span>
+        <span class="specialty-name">${s}</span>
+        <span class="specialty-count">${c}</span>
+        <span class="specialty-arrow">‹</span>
+      </div>`;
+    }).join("");
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

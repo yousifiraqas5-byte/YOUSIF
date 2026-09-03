@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy, where, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy, where, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -168,5 +168,43 @@ export async function saveRecommendation(data) {
     return true;
   } catch (err) {
     return false;
+  }
+}
+
+export async function setShopLike(shopId, value) {
+  try {
+    const uid = await getCurrentUid();
+    if (!uid) return false;
+    const docId = `${uid}_${shopId}`;
+    if (value === 0) {
+      await deleteDoc(doc(db, "likes", docId));
+    } else {
+      await setDoc(doc(db, "likes", docId), {
+        shopId, uid, value, createdAt: serverTimestamp()
+      });
+    }
+    return true;
+  } catch (err) {
+    console.error("setShopLike error:", err);
+    return false;
+  }
+}
+
+export async function getShopLikes(shopId) {
+  try {
+    const snapshot = await getDocs(collection(db, "likes"));
+    let likes = 0, dislikes = 0, myValue = 0;
+    const uid = await getCurrentUid();
+    const myDocId = uid ? `${uid}_${shopId}` : null;
+    snapshot.forEach((d) => {
+      const data = d.data();
+      if (data.shopId !== shopId) return;
+      if (data.value === 1) likes++;
+      else if (data.value === -1) dislikes++;
+      if (myDocId && d.id === myDocId) myValue = data.value;
+    });
+    return { likes, dislikes, myValue };
+  } catch (err) {
+    return { likes: 0, dislikes: 0, myValue: 0 };
   }
 }

@@ -639,12 +639,18 @@ button:active { transform: scale(0.98); }
 
 .registration-card {
   background: var(--paper);
-  border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--accent);
+  border: 2px solid var(--ink);
+  border-inline-start: 4px solid var(--accent);
   padding: 18px;
-  margin-bottom: 14px;
-  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  border-radius: var(--radius-md);
   text-align: right;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.registration-card:hover {
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
 }
 
 .registration-card h3 {
@@ -669,6 +675,26 @@ button:active { transform: scale(0.98); }
 .registration-card > a > button,
 .registration-card > .comment-input-row {
   margin-top: 6px;
+}
+
+.card-toggle-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 13.5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.card-toggle-btn:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 .registration-card hr {
