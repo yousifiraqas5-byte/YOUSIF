@@ -8,13 +8,13 @@
 
 :root {
   /* ألوان */
-  --ink: #14161a;          /* الشاصي الغامق: الهيدر والقائمة السفلية */
+  --ink: #032f3c;          /* الشاصي الغامق: الهيدر والقائمة السفلية */
   --ink-soft: #23262e;     /* سطح غامق ثانوي */
   --paper: #ffffff;        /* محتوى فاتح */
   --surface: #f4f4f2;      /* خلفية عامة خلف الحاوية */
   --field: #f2f2f0;        /* خلفية الحقول والبحث */
   --line: #e7e6e2;         /* حدود فاتحة */
-  --steel: #6b7280;        /* نص ثانوي */
+  --steel: #046169;        /* نص ثانوي */
   --steel-light: #9aa0a8;
   --ink-text: #1c1e22;     /* نص أساسي */
   --accent: #ff6a00;       /* برتقالي إشاري */
@@ -776,19 +776,19 @@ button:active { transform: scale(0.98); }
 }
 .comment-input-row .comment-btn {
   flex: 0 0 auto !important;
-  width: auto !important;
-  height: auto !important;
+  width: 42px !important;
+  height: 42px !important;
   min-height: 42px;
-  min-width: 70px;
-  max-width: 110px;
-  padding: 8px 14px !important;
+  min-width: 42px;
+  max-width: 42px;
+  padding: 0 !important;
   margin: 0 !important;
-  font-size: 14px !important;
-  line-height: 1.2;
+  font-size: 18px !important;
+  line-height: 1;
   font-weight: 600;
   font-family: var(--font-body);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
@@ -797,6 +797,7 @@ button:active { transform: scale(0.98); }
   align-items: center;
   justify-content: center;
 }
+.comment-input-row .comment-btn:active { transform: scale(0.94); }
 .comment-input-row .comment-btn:hover { background: var(--accent-dark, var(--ink-soft)); }
 
 .comments-list { text-align: right; margin: 10px 0; }
@@ -896,7 +897,6 @@ button:active { transform: scale(0.98); }
 .star-widget .star { font-size: 16px; }
 
 .star-widget.already-rated .star {
-  color: var(--accent);
   cursor: pointer;
 }
 

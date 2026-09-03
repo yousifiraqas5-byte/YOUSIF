@@ -1,353 +1,172 @@
-// Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy, where, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  serverTimestamp,
-  query,
-  orderBy,
-  where,
-  doc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-
-import {
-  getAuth,
-  signInAnonymously,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-// ضع بيانات مشروعك هنا (تأكد أنها تطابق Project settings في Console)
 const firebaseConfig = {
   apiKey: "AIzaSyAdGFdlWaYzYFmjWdJjfUPkD4ODtsfCTHM",
   authDomain: "yousif-4cc87.firebaseapp.com",
   projectId: "yousif-4cc87",
-  storageBucket: "yousif-4cc87.appspot.com",
+  storageBucket: "yousif-4cc87.firebasestorage.app",
   messagingSenderId: "1088580081605",
-  appId: "1:1088580081605:web:aa3983dbd53c84f7c69dac"
+  appId: "1:1088580081605:web:aa3983dbd53c84f7c69dac",
+  measurementId: "G-F4NECXGTCV"
 };
 
-// تشغيل Firebase
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const auth = getAuth(app);
 
-// وعد يتحقق لما تكتمل عملية تسجيل الدخول المجهول، عشان نقدر نعرف هوية المستخدم قبل حفظ أي تقييم
-let resolveAuthReady;
-const authReady = new Promise((resolve) => {
-  resolveAuthReady = resolve;
+let authReady = new Promise((resolve) => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) resolve(user);
+    else signInAnonymously(auth).then((cred) => resolve(cred.user)).catch(() => resolve(null));
+  });
 });
 
-// تسجيل مجهول تلقائي للمستخدم لتمكين الكتابة من المتصفح (تأكد أن Anonymous مفعل في Console)
-signInAnonymously(auth).catch((err) => {
-  console.warn('Anonymous sign-in failed:', err);
-  resolveAuthReady(null);
-});
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log('Firebase anonymous signed in, uid =', user.uid);
-  } else {
-    console.log('Firebase auth: signed out');
-  }
-  resolveAuthReady(user);
-});
-
-// إرجاع هوية المستخدم الحالي (تنتظر اكتمال تسجيل الدخول المجهول إذا لم يكتمل بعد)
 export async function getCurrentUid() {
   if (auth.currentUser) return auth.currentUser.uid;
   const user = await authReady;
   return user ? user.uid : null;
 }
 
-const db = getFirestore(app);
-
-// حفظ محل
-export async function saveShop(data) {
-  try {
-    const ref = await addDoc(collection(db, "shops"), {
-      ...data,
-      createdAt: serverTimestamp()
-    });
-    console.log('saveShop: created doc', ref.id);
-    return true;
-  } catch (err) {
-    console.error('Failed to save shop:', err);
-    return false;
-  }
-}
-
-// قراءة جميع المحلات
-export async function getShops() {
-  try {
-    const snapshot = await getDocs(collection(db, "shops"));
-
-    const shops = [];
-    snapshot.forEach((doc) => shops.push({ id: doc.id, ...doc.data() }));
-
-    return shops;
-  } catch (err) {
-    console.error('Failed to get shops:', err);
-    return [];
-  }
-}
-
-// حفظ تسجيل من النموذج
-export async function saveRegistration(data) {
-  try {
-    const ref = await addDoc(collection(db, "registrations"), {
-      ...data,
-      createdAt: serverTimestamp()
-    });
-    console.log('saveRegistration: created doc', ref.id);
-    return true;
-  } catch (err) {
-    console.error('Failed to save registration:', err);
-    return false;
-  }
-}
-
-// جلب التسجيلات مرتبة بحسب الأحدث
 export async function getRegistrations() {
   try {
-    // حاول الاستعلام المرتب أولاً
-    try {
-      const q = query(collection(db, "registrations"), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const regs = [];
-snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
-
-console.log("Registrations:", regs);
-
-return regs;
-    } catch (innerErr) {
-      // قد يفشل الأمر إذا لم يوجد حقل createdAt في المستندات بعد، فالتراجع إلى جلبٍ بسيط
-      console.warn('Ordered query failed, falling back to simple getDocs:', innerErr);
-      const snapshot = await getDocs(collection(db, "registrations"));
-      const regs = [];
-      snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
-      console.log('getRegistrations: fetched', regs.length, 'items (fallback)');
-      return regs;
-    }
-  } catch (err) {
-    console.error('Failed to get registrations:', err);
-    return [];
-  }
-}
-// ==========================
-// اقتراح/ترشيح محل أو ورشة (بدون تسجيل رسمي)
-// ==========================
-
-export async function saveRecommendation(data) {
-  try {
-    const uid = await getCurrentUid();
-
-    const ref = await addDoc(collection(db, "recommendations"), {
-      ...data,
-      uid: uid || null,
-      createdAt: serverTimestamp()
-    });
-
-    console.log('saveRecommendation: created doc', ref.id);
-    return true;
-  } catch (err) {
-    console.error('Failed to save recommendation:', err);
-    return false;
-  }
-}
-
-// ==========================
-// Comments Functions
-// ==========================
-
-export async function saveComment(data) {
-  try {
-    const uid = await getCurrentUid();
-
-    // التعليقات بلا حدود: لا يوجد فحص تكرار هنا
-    const ref = await addDoc(collection(db, "comments"), {
-      ...data,
-      uid: uid || null,
-      createdAt: serverTimestamp()
-    });
-
-    console.log("Comment saved:", ref.id);
-    return true;
-
-  } catch (err) {
-    console.error("Failed to save comment:", err);
-    return false;
-  }
-}
-
-// ================================
-// دوال التقييمات (منفصلة عن التعليقات)
-// التقييم: نجمة فقط، مرة واحدة لكل مستخدم
-// ================================
-export async function saveRating(data) {
-  try {
-    const uid = await getCurrentUid();
-    if (!uid) {
-      console.error("saveRating: no uid");
-      return false;
-    }
-
-    // مفتاح فريد = uid + shopId => مستخدم واحد لا يستطيع تقييم نفس المحل مرتين
-    const docId = `${uid}_${data.shopId}`;
-    const ref = doc(db, "ratings", docId);
-
-    await setDoc(ref, {
-      shopId: data.shopId,
-      rating: data.rating,
-      uid: uid,
-      createdAt: serverTimestamp()
-    });
-
-    console.log("Rating saved:", docId);
-    return true;
-
-  } catch (err) {
-    console.error("Failed to save rating:", err);
-    return false;
-  }
-}
-
-export async function getRatings(shopId) {
-  try {
-    const q = query(
-      collection(db, "ratings"),
-      where("shopId", "==", shopId)
-    );
-
-    const snapshot = await getDocs(q);
-
-    const ratings = [];
-
-    snapshot.forEach((doc) => {
-      ratings.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    return ratings;
-
-  } catch (err) {
-    console.error("Failed to get ratings:", err);
-    return [];
-  }
-}
-
-// جلب تقييم المستخدم الحالي لمحل معيّن
-export async function getUserRating(shopId) {
-  try {
-    const uid = await getCurrentUid();
-    if (!uid) return null;
-
-    const docId = `${uid}_${shopId}`;
-    const { getDoc } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
-    const snap = await getDoc(doc(db, "ratings", docId));
-
-    if (!snap.exists()) return null;
-    return snap.data().rating || null;
-  } catch (err) {
-    console.error("Failed to get user rating:", err);
-    return null;
-  }
-}
-
-// جلب كل التعليقات (تُستخدم لترتيب المحلات حسب آخر نشاط)
-export async function getAllComments() {
-  try {
-    const q = query(
-      collection(db, "comments"),
-      orderBy("createdAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-
+    const snapshot = await getDocs(collection(db, "registrations"));
     const all = [];
-
-    snapshot.forEach((doc) => {
-      all.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
+    snapshot.forEach((doc) => all.push({ id: doc.id, ...doc.data() }));
     return all;
-
   } catch (err) {
-    console.error("Failed to get all comments:", err);
+    console.error("getRegistrations error:", err);
     return [];
   }
 }
 
 export async function getComments(shopId) {
   try {
-    const q = query(
-      collection(db, "comments"),
-      where("shopId", "==", shopId),
-      orderBy("createdAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-
-    const comments = [];
-
+    const snapshot = await getDocs(collection(db, "comments"));
+    const all = [];
     snapshot.forEach((doc) => {
-      comments.push({
-        id: doc.id,
-        ...doc.data()
-      });
+      const d = doc.data();
+      if (d.shopId === shopId) all.push({ id: doc.id, ...d });
     });
-
-    return comments;
-
+    return all;
   } catch (err) {
-    console.error("Failed to get comments:", err);
     return [];
   }
 }
 
-// ================================
-// دوال إحصائية التقييم
-// ================================
-export async function getRatingStats(shopId) {
-
+export async function getAllComments() {
   try {
-
-    const ratings = await getRatings(shopId);
-
-    if (!Array.isArray(ratings) || ratings.length === 0) {
-      return {
-        average: 0,
-        votes: 0
-      };
-    }
-
-    const total = ratings.reduce((sum, item) => {
-      return sum + (Number(item.rating) || 0);
-    }, 0);
-
-    const votes = ratings.length;
-    const average = total / votes;
-
-    return {
-      average: Number(average.toFixed(1)),
-      votes: votes
-    };
-
+    const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    const all = [];
+    snapshot.forEach((doc) => all.push({ id: doc.id, ...doc.data() }));
+    return all;
   } catch (err) {
-
-    console.error("Failed to get rating stats:", err);
-
-    return {
-      average: 0,
-      votes: 0
-    };
-
+    return [];
   }
+}
 
+export async function saveComment(data) {
+  try {
+    const uid = await getCurrentUid();
+    await addDoc(collection(db, "comments"), {
+      shopId: data.shopId,
+      comment: data.comment,
+      name: data.name || "",
+      uid: uid || "",
+      createdAt: serverTimestamp()
+    });
+    return true;
+  } catch (err) {
+    console.error("saveComment error:", err);
+    return false;
+  }
+}
+
+export async function saveRegistration(data) {
+  try {
+    await addDoc(collection(db, "registrations"), {
+      ...data,
+      createdAt: serverTimestamp()
+    });
+    return true;
+  } catch (err) {
+    console.error("saveRegistration error:", err);
+    return false;
+  }
+}
+
+export async function saveRating(data) {
+  try {
+    const uid = await getCurrentUid();
+    if (!uid) return false;
+    const docId = `${uid}_${data.shopId}`;
+    await setDoc(doc(db, "ratings", docId), {
+      shopId: data.shopId,
+      rating: data.rating,
+      uid: uid,
+      createdAt: serverTimestamp()
+    });
+    return true;
+  } catch (err) {
+    console.error("saveRating error:", err);
+    return false;
+  }
+}
+
+export async function getRatings(shopId) {
+  try {
+    const snapshot = await getDocs(collection(db, "ratings"));
+    const all = [];
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d && d.shopId === shopId) all.push({ id: docSnap.id, ...d });
+    });
+    return all;
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function getUserRating(shopId) {
+  try {
+    const uid = await getCurrentUid();
+    if (!uid) return null;
+    const docId = `${uid}_${shopId}`;
+    const snap = await getDoc(doc(db, "ratings", docId));
+    if (!snap.exists()) return null;
+    return snap.data().rating || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function saveShop(data) {
+  try {
+    await addDoc(collection(db, "shops"), { ...data, createdAt: serverTimestamp() });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export async function getShops() {
+  try {
+    const snapshot = await getDocs(collection(db, "shops"));
+    const all = [];
+    snapshot.forEach((doc) => all.push({ id: doc.id, ...doc.data() }));
+    return all;
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function saveRecommendation(data) {
+  try {
+    await addDoc(collection(db, "recommendations"), { ...data, createdAt: serverTimestamp() });
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
