@@ -592,6 +592,32 @@ button:active { transform: scale(0.98); }
 
 .btn-submit:hover { background: var(--accent-dark); }
 
+.auth-error {
+  color: #d92626;
+  font-size: 13px;
+  text-align: right;
+  margin: -4px 0 10px;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 13.5px;
+  color: var(--steel);
+}
+
+.auth-switch a {
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.auth-switch a:hover { text-decoration: underline; }
+
+.menu-item.logged-in { color: var(--ok); }
+
+
 .specialty-options {
   display: flex;
   flex-direction: column;
@@ -835,20 +861,70 @@ button:active { transform: scale(0.98); }
 }
 
 .comment-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: 8px;
   font-size: 12.5px;
 }
 
-.comment-name { font-weight: 700; color: var(--ink-text); }
+.comment-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.comment-name {
+  font-weight: 700;
+  color: var(--ink-text);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .comment-stars { color: var(--accent); letter-spacing: 1px; }
 
 .comment-text {
-  margin-top: 4px;
+  margin-top: 1px;
   font-size: 13.5px;
   color: var(--steel);
   line-height: 1.5;
+}
+
+.comment-like-btn {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: var(--steel-light);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.comment-like-btn:hover { background: var(--field); color: var(--steel); }
+.comment-like-btn:active { transform: scale(0.92); }
+
+.comment-like-btn.liked { color: #1877f2; font-weight: 700; }
+.comment-like-btn.liked:hover { background: rgba(24, 119, 242, 0.08); }
+
+.comment-like-btn .like-icon {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.comment-like-btn .like-count {
+  font-family: var(--font-display);
+  min-width: 8px;
+  text-align: center;
 }
 
 .no-comments {

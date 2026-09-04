@@ -10,7 +10,12 @@ import {
   saveRating,
   getCurrentUid,
   saveRecommendation,
-  getUserRating
+  getUserRating,
+  setCommentLike,
+  getAllCommentLikes,
+  registerAccount,
+  loginAccount,
+  getCurrentUserInfo
 } from "./firebase.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -352,6 +357,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // ---------------------------------------------------------------
+    // تنسيق رقم الهاتف أثناء الكتابة بالشكل: 07xx xxxxxxx (11 رقم)
+    // ---------------------------------------------------------------
+    const phoneInput = document.getElementById("phone");
+    function formatPhoneDisplay(digits) {
+      const d = digits.slice(0, 11);
+      return d.length > 4 ? `${d.slice(0, 4)} ${d.slice(4)}` : d;
+    }
+    function isValidIraqiPhone(digits) {
+      return digits.length === 11;
+    }
+    if (phoneInput) {
+      phoneInput.setAttribute("maxlength", "12");
+      phoneInput.setAttribute("placeholder", "07xx xxxxxxx");
+      phoneInput.setAttribute("inputmode", "numeric");
+      phoneInput.addEventListener("input", () => {
+        const digitsOnly = phoneInput.value.replace(/\D/g, "").slice(0, 11);
+        phoneInput.value = formatPhoneDisplay(digitsOnly);
+      });
+      phoneInput.addEventListener("blur", () => {
+        const digitsOnly = phoneInput.value.replace(/\D/g, "");
+        if (digitsOnly.length > 0 && !isValidIraqiPhone(digitsOnly)) {
+          phoneInput.setCustomValidity("رقم الهاتف يجب أن يتكون من 11 رقم، مثال: 07xx xxxxxxx");
+          phoneInput.reportValidity();
+        } else {
+          phoneInput.setCustomValidity("");
+        }
+      });
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -361,6 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!name || !city || !region) {
         alert("الرجاء تعبئة الحقول المطلوبة: اسم المحل، المحافظة، المنطقة");
+        return;
+      }
+
+      const phoneDigits = (phoneInput?.value || "").replace(/\D/g, "");
+      if (phoneDigits.length > 0 && !isValidIraqiPhone(phoneDigits)) {
+        alert("رقم الهاتف يجب أن يتكون من 11 رقم، مثال: 07xx xxxxxxx");
+        phoneInput?.focus();
         return;
       }
 
@@ -375,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         city,
         region,
         landmark: document.getElementById("landmark")?.value.trim() || "",
-        phone: sanitizePhone(document.getElementById("phone")?.value || ""),
+        phone: sanitizePhone(phoneDigits),
         regType: document.getElementById("regType")?.value || "",
         specialties: getCheckedValues("specialties"),
         workDays: document.getElementById("workDays")?.value.trim() || "",
@@ -451,13 +493,51 @@ document.addEventListener('DOMContentLoaded', () => {
       alert("اكتب تعليقك أولاً");
       return;
     }
-    const ok = await saveComment({ shopId, comment });
+
+    const userInfo = await getCurrentUserInfo();
+    let name = "";
+    if (userInfo && !userInfo.isAnonymous) {
+      name = userInfo.name || userInfo.email.split("@")[0];
+    }
+
+    if (!name) {
+      const nameBox = document.getElementById(`cname-${shopId}`);
+      name = nameBox?.value.trim() || "";
+    }
+
+    const ok = await saveComment({
+      shopId,
+      comment,
+      name: name || "مستخدم"
+    });
+
     if (!ok) {
       alert("حدث خطأ أثناء الحفظ");
       return;
     }
+
     const commentBox = document.getElementById(`comment-${shopId}`);
     if (commentBox) commentBox.value = "";
+    await loadComments(shopId);
+  };
+
+  function attachCommentLikeButtons(root) {
+    if (!root) return;
+    root.querySelectorAll(".comment-like-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        window.toggleCommentLike(btn.dataset.commentId, btn.dataset.shopId);
+      });
+    });
+  }
+
+  window.toggleCommentLike = async function (commentId, shopId) {
+    const btn = document.querySelector(`.comment-like-btn[data-comment-id="${commentId}"]`);
+    const alreadyLiked = btn ? btn.classList.contains("liked") : false;
+    const ok = await setCommentLike(commentId, !alreadyLiked);
+    if (!ok) {
+      alert("حدث خطأ أثناء تسجيل الإعجاب");
+      return;
+    }
     await loadComments(shopId);
   };
 
@@ -542,17 +622,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           });
           const anonLabel = (c) => {
+            if (c.name && c.name !== "مستخدم") {
+              return c.name;
+            }
             const key = c.uid || `__no_uid_${c.id}`;
-            return `مشارك مجهول #${anonNumberByKey[key]}`;
+            return `مشارك مجهول (${anonNumberByKey[key]})`;
           };
 
-          const renderOne = (c) => `
+          // يجلب كل الإعجابات بطلب واحد ثم يحسب عدد إعجابات كل تعليق
+          // وهل المستخدم الحالي معجب فيه، بدل استعلام منفصل لكل تعليق.
+          let likesByComment = {};
+          try {
+            const [allLikes, myUid] = await Promise.all([getAllCommentLikes(), getCurrentUid()]);
+            allLikes.forEach(l => {
+              if (!likesByComment[l.commentId]) likesByComment[l.commentId] = { count: 0, likedByMe: false };
+              likesByComment[l.commentId].count++;
+              if (myUid && l.uid === myUid) likesByComment[l.commentId].likedByMe = true;
+            });
+          } catch (e) {
+            likesByComment = {};
+          }
+
+          const renderOne = (c) => {
+            const likeInfo = likesByComment[c.id] || { count: 0, likedByMe: false };
+            const safeCommentId = escapeHTML(c.id);
+            const safeShopId = escapeHTML(shopId);
+            return `
             <div class="comment-item">
               <div class="comment-header">
                 <span class="comment-name">${escapeHTML(anonLabel(c))}</span>
+                <button type="button" class="comment-like-btn${likeInfo.likedByMe ? " liked" : ""}" data-comment-id="${safeCommentId}" data-shop-id="${safeShopId}" aria-pressed="${likeInfo.likedByMe ? "true" : "false"}" aria-label="إعجاب">
+                  <svg class="like-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
+                  <span class="like-count">${likeInfo.count}</span>
+                </button>
               </div>
               ${c.comment ? `<p class="comment-text">${escapeHTML(c.comment)}</p>` : ""}
             </div>`;
+          };
           const visible = list.slice(0, 2).map(renderOne).join("");
           const hidden = list.slice(2).map(renderOne).join("");
           const hiddenHtml = hidden ? `<div class="comments-hidden" style="display:none;">${hidden}</div><button type="button" class="show-more-comments">عرض المزيد (${list.length - 2}+)</button>` : "";
@@ -566,6 +672,8 @@ document.addEventListener('DOMContentLoaded', () => {
               moreBtn.style.display = "none";
             });
           }
+
+          attachCommentLikeButtons(box);
         }
       }
     } catch (err) {
@@ -636,20 +744,22 @@ window.showCategoryRegistrations = async function (type, specialty) {
           r.regType === "both" ? "🔧🛒 صيانة + بيع" : (r.regType || "");
         const specialties = Array.isArray(r.specialties) ? r.specialties.join("، ") : (r.specialty || "غير محدد");
 
+        const safePhone = r.phone ? sanitizePhone(r.phone) : "";
+
         container.innerHTML += `
         <div class="registration-card">
           <h3>
-            <span class="shop-name">${r.name || r.shopName || "بدون اسم"}</span>
+            <span class="shop-name">${escapeHTML(r.name || r.shopName || "بدون اسم")}</span>
             ${starWidgetHTML(r.id)}
           </h3>
-          <p><strong>الفئة:</strong> ${typeLabel}</p>
-          <p><strong>التخصصات:</strong> ${specialties}</p>
-          <p><strong>المحافظة:</strong> ${r.city || ""}</p>
-          <p><strong>المنطقة:</strong> ${r.region || ""}</p>
+          <p><strong>الفئة:</strong> ${escapeHTML(typeLabel)}</p>
+          <p><strong>التخصصات:</strong> ${escapeHTML(specialties)}</p>
+          <p><strong>المحافظة:</strong> ${escapeHTML(r.city || "")}</p>
+          <p><strong>المنطقة:</strong> ${escapeHTML(r.region || "")}</p>
+          ${safePhone ? `<p><strong>📞 الهاتف:</strong> <span class="shop-phone" data-phone="${escapeHTML(safePhone)}">${escapeHTML(safePhone)}</span></p>` : ""}
           <div class="card-extra" style="display:none">
-            ${r.landmark ? `<p><strong>📍 أقرب نقطة دالة / الشارع:</strong> ${r.landmark}</p>` : ""}
-            ${r.phone ? `<p><strong>📞 الهاتف:</strong> <span class="shop-phone" data-phone="${r.phone}">${r.phone}</span></p>` : ""}
-            ${r.mapLocation ? `<p><strong>🗺️ الموقع:</strong> <a href="${r.mapLocation}" target="_blank">فتح الموقع على الخريطة 📍</a></p>` : ""}
+            ${r.landmark ? `<p><strong>📍 أقرب نقطة دالة / الشارع:</strong> ${escapeHTML(r.landmark)}</p>` : ""}
+            ${r.mapLocation && isSafeUrl(r.mapLocation) ? `<p><strong>🗺️ الموقع:</strong> <a href="${escapeHTML(r.mapLocation)}" target="_blank" rel="noopener noreferrer">فتح الموقع على الخريطة 📍</a></p>` : ""}
             ${renderReviewSection(r.id)}
           </div>
           <button type="button" class="card-toggle-btn">▼ عرض التفاصيل</button>
@@ -658,6 +768,8 @@ window.showCategoryRegistrations = async function (type, specialty) {
       });
 
       attachPhoneLongPress(container);
+      attachStarWidgetEvents(container);
+      attachCommentButtons(container);
       attachCardToggle(container);
       if (typeof window.openAsFullPage === "function") window.openAsFullPage();
     } catch (err) {
@@ -805,10 +917,10 @@ window.openCategory = async function (type) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // الصفحات التالية (الشكاوى / من نحن / اتصل بنا / تسجيل الدخول) غير
-  // موجودة بعد في المشروع، فتم وضع دوال placeholder آمنة بدل الأخطاء
-  // السابقة (كانت هذه الدوال غير معرّفة إطلاقًا وتسبب ReferenceError).
-  // استبدل محتوى كل دالة عند إضافة الصفحة الفعلية لها.
+  // الصفحات التالية (الشكاوى / من نحن / اتصل بنا) غير موجودة بعد في
+  // المشروع، فتم وضع دوال placeholder آمنة بدل الأخطاء السابقة (كانت هذه
+  // الدوال غير معرّفة إطلاقًا وتسبب ReferenceError). تسجيل الدخول له تطبيق
+  // فعلي الآن أدناه (openAuthModal / updateAuthUI).
   window.goToComplaints = function () {
     closeSideMenu();
     alert("صفحة الشكاوي قيد الإعداد حاليًا");
@@ -824,10 +936,126 @@ window.openCategory = async function (type) {
     alert("صفحة \"اتصل بنا\" قيد الإعداد حاليًا");
   };
 
-  window.login = function () {
+  // -----------------------------------------------------------------
+  // تسجيل الدخول / إنشاء حساب — منفصل تمامًا عن نموذج تسجيل المحل.
+  // -----------------------------------------------------------------
+  function translateAuthError(code) {
+    const map = {
+      "auth/email-already-in-use": "هذا البريد أو الرقم مسجّل مسبقًا، جرب تسجيل الدخول بدلاً من ذلك",
+      "auth/invalid-email": "صيغة البريد أو رقم الهاتف غير صحيحة",
+      "auth/weak-password": "كلمة المرور ضعيفة، يجب أن تكون 6 أحرف على الأقل",
+      "auth/wrong-password": "كلمة المرور غير صحيحة",
+      "auth/user-not-found": "لا يوجد حساب بهذا البريد أو الرقم",
+      "auth/invalid-credential": "البريد/الرقم أو كلمة المرور غير صحيحة",
+      "auth/too-many-requests": "محاولات كثيرة، حاول لاحقًا",
+      "auth/operation-not-allowed": "تسجيل الدخول بالبريد/كلمة المرور غير مفعّل حاليًا من إعدادات المشروع",
+      "auth/network-request-failed": "تعذّر الاتصال بالخادم، تأكد من اتصالك بالإنترنت"
+    };
+    return map[code] || `حدث خطأ غير متوقع (${code || "غير معروف"}), حاول مرة أخرى`;
+  }
+
+  const authModal = document.getElementById("authModal");
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+  const loginError = document.getElementById("loginError");
+  const signupError = document.getElementById("signupError");
+  const authModalTitle = document.getElementById("authModalTitle");
+  const switchToSignup = document.getElementById("switchToSignup");
+  const switchToLogin = document.getElementById("switchToLogin");
+  const menuLoginItem = document.getElementById("menuLoginItem");
+
+  window.openAuthModal = function () {
     closeSideMenu();
-    alert("ميزة تسجيل الدخول قيد الإعداد حاليًا");
+    if (authModal) authModal.classList.add("active");
   };
+
+  window.closeAuthModal = function () {
+    if (authModal) authModal.classList.remove("active");
+    if (loginError) loginError.style.display = "none";
+    if (signupError) signupError.style.display = "none";
+  };
+
+  window.toggleAuthMode = function (mode) {
+    const showSignup = mode === "signup";
+    if (loginForm) loginForm.style.display = showSignup ? "none" : "";
+    if (signupForm) signupForm.style.display = showSignup ? "" : "none";
+    if (switchToSignup) switchToSignup.style.display = showSignup ? "none" : "";
+    if (switchToLogin) switchToLogin.style.display = showSignup ? "" : "none";
+    if (authModalTitle) authModalTitle.textContent = showSignup ? "🆕 إنشاء حساب" : "🔐 تسجيل الدخول";
+    if (loginError) loginError.style.display = "none";
+    if (signupError) signupError.style.display = "none";
+  };
+
+  async function updateAuthUI() {
+    if (!menuLoginItem) return;
+    const anonymous = isCurrentUserAnonymous();
+    if (anonymous) {
+      menuLoginItem.textContent = "🔐 تسجيل الدخول";
+      menuLoginItem.classList.remove("logged-in");
+      menuLoginItem.onclick = window.openAuthModal;
+      return;
+    }
+    const profile = await getCurrentUserProfile();
+    const displayName = profile ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() : "";
+    menuLoginItem.textContent = displayName ? `🚪 تسجيل الخروج (${displayName})` : "🚪 تسجيل الخروج";
+    menuLoginItem.classList.add("logged-in");
+    menuLoginItem.onclick = window.logoutAccountUI;
+  }
+
+  window.logoutAccountUI = async function () {
+    closeSideMenu();
+    await logoutAccount();
+    await updateAuthUI();
+  };
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (loginError) loginError.style.display = "none";
+      const identifier = document.getElementById("loginIdentifier")?.value.trim() || "";
+      const password = document.getElementById("loginPassword")?.value || "";
+      if (!identifier || !password) return;
+      const result = await loginAccount({ identifier, password });
+      if (result.ok) {
+        loginForm.reset();
+        window.closeAuthModal();
+        await updateAuthUI();
+      } else if (loginError) {
+        loginError.textContent = translateAuthError(result.code);
+        loginError.style.display = "block";
+      }
+    });
+  }
+
+  if (signupForm) {
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (signupError) signupError.style.display = "none";
+      const firstName = document.getElementById("signupFirstName")?.value.trim() || "";
+      const lastName = document.getElementById("signupLastName")?.value.trim() || "";
+      const identifier = document.getElementById("signupIdentifier")?.value.trim() || "";
+      const password = document.getElementById("signupPassword")?.value || "";
+      if (!firstName || !lastName || !identifier || !password) return;
+      if (password.length < 6) {
+        if (signupError) {
+          signupError.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
+          signupError.style.display = "block";
+        }
+        return;
+      }
+      const result = await registerAccount({ firstName, lastName, identifier, password });
+      if (result.ok) {
+        signupForm.reset();
+        window.closeAuthModal();
+        await updateAuthUI();
+      } else if (signupError) {
+        signupError.textContent = translateAuthError(result.code);
+        signupError.style.display = "block";
+      }
+    });
+  }
+
+  onAuthChange(() => { updateAuthUI(); });
 
   // ربط أزرار الأقسام الرئيسية بدون onclick مضمّن في HTML.
   document.querySelectorAll('[data-category]').forEach(el => {

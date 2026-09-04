@@ -49,7 +49,7 @@
         📞 اتصل بنا
     </button>
 
-    <button class="menu-item login-item" onclick="login()">
+    <button class="menu-item login-item" id="menuLoginItem" onclick="openAuthModal()">
         🔐 تسجيل الدخول
     </button>
 
@@ -218,6 +218,61 @@
   </button>
 
 </nav>
+
+  <!-- نافذة تسجيل الدخول / إنشاء حساب -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeAuthModal()">✕</button>
+      <h2 id="authModalTitle">🔐 تسجيل الدخول</h2>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginIdentifier">📧 البريد الإلكتروني أو رقم الهاتف:</label>
+          <input type="text" id="loginIdentifier" name="loginIdentifier" required placeholder="example@mail.com أو 07xxxxxxxxx">
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">🔑 كلمة المرور:</label>
+          <input type="password" id="loginPassword" name="loginPassword" required placeholder="كلمة المرور">
+        </div>
+
+        <p class="auth-error" id="loginError" style="display:none;"></p>
+
+        <button type="submit" class="btn-submit">✅ تسجيل الدخول</button>
+      </form>
+
+      <form id="signupForm" style="display:none;">
+        <div class="form-group">
+          <label for="signupFirstName">👤 الاسم الأول:</label>
+          <input type="text" id="signupFirstName" name="signupFirstName" required placeholder="الاسم الأول">
+        </div>
+
+        <div class="form-group">
+          <label for="signupLastName">👤 الاسم الثاني:</label>
+          <input type="text" id="signupLastName" name="signupLastName" required placeholder="الاسم الثاني">
+        </div>
+
+        <div class="form-group">
+          <label for="signupIdentifier">📧 البريد الإلكتروني أو رقم الهاتف:</label>
+          <input type="text" id="signupIdentifier" name="signupIdentifier" required placeholder="example@mail.com أو 07xxxxxxxxx">
+        </div>
+
+        <div class="form-group">
+          <label for="signupPassword">🔑 كلمة المرور:</label>
+          <input type="password" id="signupPassword" name="signupPassword" required placeholder="6 أحرف على الأقل" minlength="6">
+        </div>
+
+        <p class="auth-error" id="signupError" style="display:none;"></p>
+
+        <button type="submit" class="btn-submit">✅ إنشاء الحساب</button>
+      </form>
+
+      <p class="auth-switch">
+        <span id="switchToSignup">ليس لديك حساب؟ <a href="#" onclick="toggleAuthMode('signup'); return false;">سجّل الآن</a></span>
+        <span id="switchToLogin" style="display:none;">لديك حساب؟ <a href="#" onclick="toggleAuthMode('login'); return false;">تسجيل الدخول</a></span>
+      </p>
+    </div>
+  </div>
 
   <!-- نافذة ترشيح محل أو ورشة -->
   <div class="modal-overlay" id="recommendModal">
