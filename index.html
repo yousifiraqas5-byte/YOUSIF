@@ -33,6 +33,8 @@
 
     <div class="menu-title">القائمة</div>
 
+    <div class="menu-user-name" id="menuUserName" style="display:none; text-align:center; font-weight:800; font-size:16px; color:#032f3c; padding:0 16px 14px; margin-bottom:6px; border-bottom:1px solid #e5e5e5;"></div>
+
     <button class="menu-item" onclick="goToHome()">
         🏠 الصفحة الرئيسية
     </button>
@@ -81,11 +83,19 @@
     </span>
   </div>
 
-  <button class="profile-btn">
+  <button class="profile-btn" id="profileBtn" aria-label="الحساب" aria-haspopup="true" aria-expanded="false">
     👤
   </button>
 
 </header>
+
+<!-- قائمة منسدلة صغيرة تظهر عند الضغط على أيقونة الحساب -->
+<div class="profile-dropdown" id="profileDropdown" style="display:none; position:fixed; z-index:1000; background:#ffffff; border-radius:14px; box-shadow:0 10px 28px rgba(0,0,0,0.2); padding:10px; min-width:190px;">
+  <div class="profile-dropdown-name" id="profileDropdownName" style="display:none; text-align:center; font-weight:800; font-size:15px; color:#032f3c; padding:6px 10px 12px; margin-bottom:6px; border-bottom:1px solid #eee;"></div>
+  <button type="button" class="profile-dropdown-item" id="profileDropdownAuthBtn" style="display:block; width:100%; border:none; background:none; padding:10px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; border-radius:10px; text-align:center; color:#032f3c;">
+    🔐 تسجيل الدخول
+  </button>
+</div>
 
 
 
@@ -315,7 +325,7 @@
   <div class="modal-overlay" id="registrationModal">
     <div class="modal">
       <button class="close-btn" onclick="closeModal()">✕</button>
-      <h2>📋 نموذج التسجيل</h2>
+      <h2>📋 تسجيل المحلات</h2>
       <form id="registrationForm">
         <div class="form-group">
   <label for="name">🏪 اسم المحل:</label>
@@ -329,12 +339,28 @@
 
 <div class="form-group">
   <label for="city">🇮🇶 المحافظة:</label>
-  <input
-    type="text"
-    id="city"
-    name="city"
-    required
-    placeholder="مثال: بغداد">
+  <select id="city" name="city" required>
+    <option value="">اختر المحافظة</option>
+    <option value="بغداد">بغداد</option>
+    <option value="البصرة">البصرة</option>
+    <option value="نينوى">نينوى</option>
+    <option value="أربيل">أربيل</option>
+    <option value="السليمانية">السليمانية</option>
+    <option value="دهوك">دهوك</option>
+    <option value="كركوك">كركوك</option>
+    <option value="الأنبار">الأنبار</option>
+    <option value="صلاح الدين">صلاح الدين</option>
+    <option value="ديالى">ديالى</option>
+    <option value="واسط">واسط</option>
+    <option value="ميسان">ميسان</option>
+    <option value="ذي قار">ذي قار</option>
+    <option value="المثنى">المثنى</option>
+    <option value="القادسية">القادسية</option>
+    <option value="بابل">بابل</option>
+    <option value="كربلاء">كربلاء</option>
+    <option value="النجف">النجف</option>
+    <option value="حلبجة">حلبجة</option>
+  </select>
 </div>
 
 <div class="form-group">
@@ -374,15 +400,145 @@
     <option value="both">🔧🛒 صيانة + بيع</option>
   </select>
 </div>
-<div class="form-group" id="specialtyGroup" style="display: none;">
-  <label>🛠️ التخصصات:</label>
+<div class="form-group car-accordion-group" id="specialtyGroup" style="display: none;">
+  <button type="button" class="accordion-toggle" id="specialtyToggle" aria-expanded="false">
+    <span>🛠️ التخصصات</span>
+    <span class="accordion-arrow">▾</span>
+  </button>
 
-  <div id="specialtyOptions" class="specialty-options"></div>
+  <div id="specialtyContent" class="accordion-content" style="display: none;">
+    <div id="specialtyOptions" class="specialty-options car-options"></div>
+  </div>
+
+  <div id="specialtySummary" class="selection-summary" style="display: none;"></div>
 
   <small class="specialty-help">
     ☑️ يمكنك اختيار أكثر من تخصص
   </small>
 </div>
+<!-- ============================= -->
+<!-- معلومات السيارات -->
+<!-- ============================= -->
+
+<div class="form-group car-accordion-group" id="carOriginGroup">
+
+  <button type="button" class="accordion-toggle" id="carOriginToggle" aria-expanded="false">
+    <span>🚗 منشأ السيارات</span>
+    <span class="accordion-arrow">▾</span>
+  </button>
+
+  <div id="carOriginContent" class="accordion-content" style="display: none;">
+
+    <div id="carOriginOptions" class="specialty-options car-options">
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="أمريكي">
+        <span>🇺🇸 أمريكي</span>
+      </label>
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="أوروبي">
+        <span>🇪🇺 أوروبي</span>
+      </label>
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="كوري">
+        <span>🇰🇷 كوري</span>
+      </label>
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="ياباني">
+        <span>🇯🇵 ياباني</span>
+      </label>
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="صيني">
+        <span>🇨🇳 صيني</span>
+      </label>
+
+      <label class="specialty-checkbox">
+        <input type="checkbox" name="carOrigins" value="أخرى">
+        <span>🌍 أخرى</span>
+      </label>
+
+    </div>
+
+    <button type="button" class="accordion-done-btn" id="carOriginDoneBtn">✅ تم الاختيار</button>
+
+  </div>
+
+  <div id="carOriginSummary" class="selection-summary" style="display: none;"></div>
+
+  <small class="specialty-help">
+    اضغط أعلاه لعرض القائمة — اختياري، يمكنك اختيار أكثر من منشأ
+  </small>
+
+</div>
+
+<div class="form-group car-accordion-group" id="carBrandGroup" style="display: none;">
+
+  <button type="button" class="accordion-toggle" id="carBrandToggle" aria-expanded="false">
+    <span>🏷️ نوع السيارة (الشركة المصنّعة)</span>
+    <span class="accordion-arrow">▾</span>
+  </button>
+
+  <div id="carBrandContent" class="accordion-content" style="display: none;">
+    <div id="carBrandOptions" class="specialty-options car-options"></div>
+    <button type="button" class="accordion-done-btn" id="carBrandDoneBtn">✅ تم الاختيار</button>
+  </div>
+
+  <div id="carBrandSummary" class="selection-summary" style="display: none;"></div>
+
+  <small class="specialty-help">
+    اضغط أعلاه لعرض القائمة — اختياري، يمكنك اختيار أكثر من نوع سيارة
+  </small>
+
+</div>
+
+<div class="form-group car-accordion-group" id="carModelGroup" style="display: none;">
+
+  <button type="button" class="accordion-toggle" id="carModelToggle" aria-expanded="false">
+    <span>🚘 الموديل</span>
+    <span class="accordion-arrow">▾</span>
+  </button>
+
+  <div id="carModelContent" class="accordion-content" style="display: none;">
+    <div id="carModelOptions" class="specialty-options car-options"></div>
+    <button type="button" class="accordion-done-btn" id="carModelDoneBtn">✅ تم الاختيار</button>
+  </div>
+
+  <div id="carModelSummary" class="selection-summary" style="display: none;"></div>
+
+  <small class="specialty-help">
+    اضغط أعلاه لعرض القائمة — اختياري، يمكنك اختيار أكثر من موديل
+  </small>
+
+</div>
+
+<div class="form-group car-accordion-group" id="carYearGroup" style="display: none;">
+
+  <button type="button" class="accordion-toggle" id="carYearToggle" aria-expanded="false">
+    <span>📅 سنة الصنع</span>
+    <span class="accordion-arrow">▾</span>
+  </button>
+
+  <div id="carYearContent" class="accordion-content" style="display: none;">
+    <div id="carYearOptions" class="specialty-options car-options"></div>
+    <button type="button" class="accordion-done-btn" id="carYearDoneBtn">✅ تم الاختيار</button>
+  </div>
+
+  <div id="carYearSummary" class="selection-summary" style="display: none;"></div>
+
+  <small class="specialty-help">
+    اضغط أعلاه لعرض القائمة — اختياري، يمكنك اختيار أكثر من سنة
+  </small>
+
+</div>
+
+<!-- ============================= -->
+<!-- بيانات إضافية (أسفل النموذج) -->
+<!-- ============================= -->
+
 <div class="form-group">
   <label for="workDays">📅 أيام الدوام:</label>
   <input
@@ -416,99 +572,6 @@
     id="description"
     name="description"
     placeholder="اكتب وصفًا مختصرًا عن المحل أو الخدمات التي يقدمها"></textarea>
-</div>
-<!-- ============================= -->
-<!-- معلومات السيارات -->
-<!-- ============================= -->
-
-<div class="form-group" id="carOriginGroup">
-
-  <label>🚗 منشأ السيارات:</label>
-
-  <div id="carOriginOptions" class="specialty-options">
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="كوري">
-      <span>🇰🇷 كوري</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="أمريكي">
-      <span>🇺🇸 أمريكي</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="ياباني">
-      <span>🇯🇵 ياباني</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="ألماني">
-      <span>🇩🇪 ألماني</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="صيني">
-      <span>🇨🇳 صيني</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="فرنسي">
-      <span>🇫🇷 فرنسي</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="إيطالي">
-      <span>🇮🇹 إيطالي</span>
-    </label>
-
-    <label class="specialty-checkbox">
-      <input type="checkbox" name="carOrigins" value="بريطاني">
-      <span>🇬🇧 بريطاني</span>
-    </label>
-
-  </div>
-
-  <small class="specialty-help">
-    اختياري — يمكنك اختيار أكثر من منشأ
-  </small>
-
-</div>
-
-<div class="form-group" id="carBrandGroup" style="display: none;">
-
-  <label>🏷️ شركات السيارات:</label>
-
-  <div id="carBrandOptions" class="specialty-options"></div>
-
-  <small class="specialty-help">
-    اختياري — يمكنك اختيار أكثر من شركة
-  </small>
-
-</div>
-
-<div class="form-group" id="carModelGroup" style="display: none;">
-
-  <label>🚘 موديلات السيارات:</label>
-
-  <div id="carModelOptions" class="specialty-options"></div>
-
-  <small class="specialty-help">
-    اختياري — يمكنك اختيار أكثر من موديل
-  </small>
-
-</div>
-
-<div class="form-group" id="carYearGroup" style="display: none;">
-
-  <label>📅 سنوات الموديلات:</label>
-
-  <div id="carYearOptions" class="specialty-options"></div>
-
-  <small class="specialty-help">
-    اختياري — يمكنك اختيار أكثر من سنة
-  </small>
-
 </div>
  
 <button type="submit" class="btn-submit">

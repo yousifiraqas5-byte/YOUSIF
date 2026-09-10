@@ -15,7 +15,11 @@ import {
   getAllCommentLikes,
   registerAccount,
   loginAccount,
-  getCurrentUserInfo
+  getCurrentUserInfo,
+  logoutAccount,
+  isCurrentUserAnonymous,
+  getCurrentUserProfile,
+  onAuthChange
 } from "./firebase.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -54,6 +58,30 @@ document.addEventListener('DOMContentLoaded', () => {
   function sanitizePhone(value) {
     return String(value ?? "").replace(/[^\d+]/g, "");
   }
+
+  // ---------------------------------------------------------------------
+  // تخزين مؤقت مشترك لإعجابات التعليقات: قبل كان كل استدعاء لـ loadComments
+  // (أي كل محل) يجلب getAllCommentLikes()+getCurrentUid() من جديد، فمع N
+  // محل صار عندنا N طلب شبكة متزامن لنفس البيانات تقريبًا، وهذا كان السبب
+  // الرئيسي لتأخر ظهور التعليقات. الحين نجلبها مرة وحدة ونشارك النتيجة،
+  // ونفرغ التخزين المؤقت فقط لما يصير تغيير فعلي (إعجاب جديد/تعليق جديد).
+  // ---------------------------------------------------------------------
+  let likesDataPromise = null;
+  function invalidateLikesCache() {
+    likesDataPromise = null;
+  }
+  function getLikesData() {
+    if (!likesDataPromise) {
+      likesDataPromise = Promise.all([getAllCommentLikes(), getCurrentUid()])
+        .catch(() => [[], null]);
+    }
+    return likesDataPromise;
+  }
+
+  // شنو المحلات اللي انفتح لها "عرض التفاصيل" وصارت تعليقاتها تنحمّل فعلاً.
+  // بدل ما نحمّل تعليقات كل المحلات دفعة وحدة عند فتح الصفحة (وين أغلبها
+  // أصلاً مخفي جوه card-extra)، نحمّلها بس أول مرة ينفتح فيها التفصيل.
+  const loadedCommentShops = new Set();
 
   function timeToMillis(v) {
     if (!v) return 0;
@@ -229,6 +257,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const open = extra.style.display !== "none";
         extra.style.display = open ? "none" : "block";
         btn.textContent = open ? "▼ عرض التفاصيل" : "▲ إخفاء التفاصيل";
+
+        // نحمّل تعليقات هذا المحل بس أول مرة ينفتح فيها "عرض التفاصيل"،
+        // مو لكل المحلات دفعة وحدة وقت تحميل الصفحة. هذا يخفف الزحمة على
+        // الشبكة ويخلي التعليقات تطلع أسرع للمحل اللي فعلاً فتحته.
+        const shopId = btn.dataset.shopId;
+        if (!open && shopId && !loadedCommentShops.has(shopId)) {
+          loadedCommentShops.add(shopId);
+          loadComments(shopId);
+        }
       });
     });
   }
@@ -295,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${renderReviewSection(r.id)}
           </div>
 
-          <button type="button" class="card-toggle-btn">▼ عرض التفاصيل</button>
+          <button type="button" class="card-toggle-btn" data-shop-id="${escapeHTML(r.id)}">▼ عرض التفاصيل</button>
         </div>`;
       });
 
@@ -303,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
       attachStarWidgetEvents(registrationsContainer);
       attachCommentButtons(registrationsContainer);
       attachCardToggle(registrationsContainer);
-      regs.forEach(r => loadComments(r.id));
     } catch (err) {
       registrationsContainer.innerHTML = `<div class="no-registrations">حدث خطأ أثناء جلب المحلات</div>`;
     }
@@ -350,11 +386,258 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
+    // دالة عامة لعرض ملخص الاختيارات أسفل كل قائمة
+    function updateSelectionSummary(summaryEl, label, values) {
+      if (!summaryEl) return;
+      if (!values || values.length === 0) {
+        summaryEl.style.display = "none";
+        summaryEl.innerHTML = "";
+        return;
+      }
+      summaryEl.style.display = "";
+      summaryEl.innerHTML = `<strong>${label}:</strong> ${escapeHTML(values.join("، "))}`;
+    }
+
+    const specialtyContent = document.getElementById("specialtyContent");
+    const specialtySummary = document.getElementById("specialtySummary");
+    const specialtyToggleBtn = document.getElementById("specialtyToggle");
+
+    function setupAccordionToggle(toggleId, contentEl) {
+      const btn = document.getElementById(toggleId);
+      if (!btn || !contentEl) return;
+      btn.addEventListener("click", () => {
+        const isOpen = contentEl.style.display !== "none";
+        contentEl.style.display = isOpen ? "none" : "block";
+        btn.setAttribute("aria-expanded", String(!isOpen));
+      });
+    }
+
+    setupAccordionToggle("specialtyToggle", specialtyContent);
+
+    if (specialtyOptions) {
+      specialtyOptions.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "specialties") {
+          updateSelectionSummary(specialtySummary, "التخصصات المختارة", getCheckedValues("specialties"));
+        }
+      });
+    }
+
     if (regTypeSelect && specialtyGroup) {
       regTypeSelect.addEventListener("change", () => {
         fillSpecialties();
         specialtyGroup.style.display = regTypeSelect.value ? "" : "none";
+        // إغلاق القائمة دائماً بعد كل تغيير — لا تُفتح تلقائياً، وتصفير الملخص
+        if (specialtyContent) specialtyContent.style.display = "none";
+        if (specialtyToggleBtn) specialtyToggleBtn.setAttribute("aria-expanded", "false");
+        updateSelectionSummary(specialtySummary, "التخصصات المختارة", []);
       });
+    }
+
+    // ---------------------------------------------------------------
+    // منشأ / نوع (ماركة) / موديل / سنة السيارات — قوائم متسلسلة قابلة للطي
+    // ---------------------------------------------------------------
+
+    const CAR_BRANDS_BY_ORIGIN = {
+      "أمريكي": [
+        "فورد", "شفروليه", "جيب", "دودج", "كرايسلر", "جي إم سي", "كاديلاك",
+        "لينكولن", "بيوك", "تسلا", "هامر"
+      ],
+      "أوروبي": [
+        "مرسيدس", "بي إم دبليو", "أودي", "فولكس فاجن", "بورش", "بيجو",
+        "رينو", "فيات", "فولفو", "لاند روفر", "سكودا", "سيات", "أوبل",
+        "ميني", "جاكوار", "ألفا روميو", "سيتروين"
+      ],
+      "كوري": [
+        "هيونداي", "كيا", "جينيسيس", "ساسانغ يونغ", "دايو"
+      ],
+      "ياباني": [
+        "تويوتا", "هوندا", "نيسان", "مازدا", "ميتسوبيشي", "سوزوكي",
+        "سوبارو", "لكزس", "إنفينيتي", "دايهاتسو", "إيسوزو"
+      ],
+      "صيني": [
+        "جيلي", "MG", "شيري Chery", "هافال Haval", "بي واي دي BYD",
+        "جاك JAC", "چانجان Changan", "جيتور Jetour", "دونغ فنغ Dongfeng",
+        "فوتون Foton", "هونغتشي Hongqi", "أوموده Omoda", "زيكر Zeekr",
+        "لينك آند كو Lynk & Co"
+      ],
+      "أخرى": ["أخرى"]
+    };
+
+    const CAR_MODELS_BY_BRAND = {
+      "تويوتا": ["كورولا", "كامري", "لاندكروزر", "برادو", "يارس", "هايلكس", "راف 4", "أفالون", "فورتشنر", "هايس", "كورولا كروس", "سيكويا"],
+      "هوندا": ["سيفيك", "أكورد", "سي آر في", "بايلوت", "إتش آر في", "أوديسي"],
+      "نيسان": ["صني", "التيما", "باترول", "إكس تريل", "كيكس", "باثفايندر", "مكسيما", "نافارا"],
+      "مازدا": ["مازدا 3", "مازدا 6", "CX-5", "CX-9", "CX-30"],
+      "ميتسوبيشي": ["لانسر", "باجيرو", "أوتلاندر", "إكليبس كروس", "إل 200"],
+      "سوزوكي": ["سويفت", "فيتارا", "بالينو", "جيمني"],
+      "سوبارو": ["فورستر", "إمبريزا", "أوتباك", "XV"],
+      "لكزس": ["ES", "LS", "LX", "RX", "GX", "NX", "IS"],
+      "إنفينيتي": ["Q50", "QX60", "QX80"],
+
+      "هيونداي": ["إلنترا", "سوناتا", "توسان", "سنتافي", "أكسنت", "فيلوستر", "أزيرا", "كريتا", "بالاسيد", "توسان ان لاين"],
+      "كيا": ["سيراتو", "أوبتيما", "سبورتاج", "سورينتو", "بيكانتو", "كارنيفال", "ريو", "تيلورايد", "K5"],
+      "جينيسيس": ["G70", "G80", "G90", "GV70", "GV80"],
+
+      "فورد": ["فيوجن", "F-150", "إكسبلورر", "موستنج", "إيدج", "إكسبيديشن", "تورس", "برونكو"],
+      "شفروليه": ["ماليبو", "كروز", "تاهو", "سيلفرادو", "كامارو", "إمبالا", "ترافيرس", "سوبربان"],
+      "جيب": ["جراند شيروكي", "رانجلر", "كومباس", "شيروكي", "جراند شيروكي إل", "جلادييتور"],
+      "دودج": ["تشارجر", "تشالنجر", "دورانجو", "جورني"],
+      "جي إم سي": ["يوكن", "سييرا", "أكاديا", "تيرين"],
+      "كاديلاك": ["إسكاليد", "CT5", "XT5", "XT6"],
+      "كرايسلر": ["300", "باسيفيكا"],
+      "لينكولن": ["نافيغيتور", "أفياتور", "كورسير"],
+
+      "مرسيدس": ["الفئة C", "الفئة E", "الفئة S", "GLC", "GLE", "GLA", "GLS", "الفئة A", "G-Class (جي واغن)"],
+      "بي إم دبليو": ["الفئة 3", "الفئة 5", "الفئة 7", "X1", "X3", "X5", "X6"],
+      "أودي": ["A3", "A4", "A6", "A8", "Q3", "Q5", "Q7", "Q8"],
+      "فولكس فاجن": ["باسات", "جيتا", "تيغوان", "طوارق", "بولو"],
+      "بورش": ["كايين", "ماكان", "باناميرا", "911"],
+      "لاند روفر": ["ديفندر", "ديسكفري", "رينج روفر", "رينج روفر سبورت", "إيفوك"],
+      "بيجو": ["208", "308", "3008", "5008"],
+      "رينو": ["داستر", "لوغان", "كوليوس", "ميغان"],
+      "فيات": ["تيبو", "500"],
+      "فولفو": ["XC60", "XC90", "S60", "S90"],
+
+      "جيلي": ["إمغراند", "كولراي Coolray", "أزكارا Azkarra", "توغيلا"],
+      "MG": ["MG5", "MG6", "ZS", "HS", "RX5"],
+      "شيري Chery": ["تيغو 7", "تيغو 8", "أريزو 5"],
+      "هافال Haval": ["H6", "جوليون Jolion", "H9"],
+      "بي واي دي BYD": ["F3", "سونغ Song", "تانغ Tang", "هان Han"],
+      "جاك JAC": ["S3", "S5", "JS4"],
+      "چانجان Changan": ["CS35", "CS55", "إيدو Eado"]
+    };
+
+    const carOriginContent = document.getElementById("carOriginContent");
+    const carOriginOptions = document.getElementById("carOriginOptions");
+    const carOriginSummary = document.getElementById("carOriginSummary");
+    const carOriginToggleBtn = document.getElementById("carOriginToggle");
+
+    const carBrandGroup = document.getElementById("carBrandGroup");
+    const carBrandContent = document.getElementById("carBrandContent");
+    const carBrandOptions = document.getElementById("carBrandOptions");
+    const carBrandSummary = document.getElementById("carBrandSummary");
+    const carBrandToggleBtn = document.getElementById("carBrandToggle");
+
+    const carModelGroup = document.getElementById("carModelGroup");
+    const carModelContent = document.getElementById("carModelContent");
+    const carModelOptions = document.getElementById("carModelOptions");
+    const carModelSummary = document.getElementById("carModelSummary");
+    const carModelToggleBtn = document.getElementById("carModelToggle");
+
+    const carYearGroup = document.getElementById("carYearGroup");
+    const carYearContent = document.getElementById("carYearContent");
+    const carYearOptions = document.getElementById("carYearOptions");
+    const carYearSummary = document.getElementById("carYearSummary");
+    const carYearToggleBtn = document.getElementById("carYearToggle");
+
+    // يملأ مجموعة checkboxes داخل حاوية معيّنة
+    function fillCarCheckboxes(container, name, items) {
+      if (!container) return;
+      container.innerHTML = "";
+      items.forEach(item => {
+        const id = name + "_" + item.replace(/[^\wأ-ي]/g, "_");
+        container.insertAdjacentHTML("beforeend",
+          `<label class="specialty-checkbox" for="${id}">
+            <input type="checkbox" id="${id}" name="${name}" value="${item}">
+            <span>${item}</span>
+          </label>`);
+      });
+    }
+
+    // يطوي/يفرغ مجموعة كاملة (الزر + الخيارات + الملخص) ويعيدها لحالة مغلقة
+    function collapseCarGroup(group, contentEl, optionsEl, toggleBtn, summaryEl) {
+      if (optionsEl) optionsEl.innerHTML = "";
+      if (contentEl) contentEl.style.display = "none";
+      if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+      if (summaryEl) { summaryEl.style.display = "none"; summaryEl.innerHTML = ""; }
+      if (group) group.style.display = "none";
+    }
+
+    // منشأ السيارات: قائمة ثابتة، تبقى مغلقة إلى أن يُضغط عليها
+    setupAccordionToggle("carOriginToggle", carOriginContent);
+    setupAccordionToggle("carBrandToggle", carBrandContent);
+    setupAccordionToggle("carModelToggle", carModelContent);
+    setupAccordionToggle("carYearToggle", carYearContent);
+
+    function refreshCarYears() {
+      collapseCarGroup(carYearGroup, carYearContent, carYearOptions, carYearToggleBtn, carYearSummary);
+      const checkedModels = getCheckedValues("carModels");
+      if (checkedModels.length === 0) return;
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      for (let y = currentYear + 1; y >= 1990; y--) years.push(String(y));
+      fillCarCheckboxes(carYearOptions, "carYears", years);
+      carYearGroup.style.display = "";
+    }
+
+    function refreshCarModels() {
+      collapseCarGroup(carModelGroup, carModelContent, carModelOptions, carModelToggleBtn, carModelSummary);
+      collapseCarGroup(carYearGroup, carYearContent, carYearOptions, carYearToggleBtn, carYearSummary);
+      const checkedBrands = getCheckedValues("carBrands");
+      if (checkedBrands.length === 0) return;
+      const models = [...new Set(checkedBrands.flatMap(b => CAR_MODELS_BY_BRAND[b] || ["أخرى"]))];
+      fillCarCheckboxes(carModelOptions, "carModels", models);
+      carModelGroup.style.display = "";
+    }
+
+    function refreshCarBrands() {
+      collapseCarGroup(carBrandGroup, carBrandContent, carBrandOptions, carBrandToggleBtn, carBrandSummary);
+      collapseCarGroup(carModelGroup, carModelContent, carModelOptions, carModelToggleBtn, carModelSummary);
+      collapseCarGroup(carYearGroup, carYearContent, carYearOptions, carYearToggleBtn, carYearSummary);
+      const checkedOrigins = getCheckedValues("carOrigins");
+      if (checkedOrigins.length === 0) return;
+      const brands = [...new Set(checkedOrigins.flatMap(o => CAR_BRANDS_BY_ORIGIN[o] || []))];
+      fillCarCheckboxes(carBrandOptions, "carBrands", brands);
+      carBrandGroup.style.display = "";
+    }
+
+    if (carOriginOptions) {
+      carOriginOptions.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "carOrigins") refreshCarBrands();
+      });
+    }
+    if (carBrandOptions) {
+      carBrandOptions.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "carBrands") refreshCarModels();
+      });
+    }
+    if (carModelOptions) {
+      carModelOptions.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "carModels") refreshCarYears();
+      });
+    }
+
+    // أزرار "تم الاختيار" — تغلق القائمة وتعرض ملخص الاختيار أسفل الزر
+    document.getElementById("carOriginDoneBtn")?.addEventListener("click", () => {
+      if (carOriginContent) carOriginContent.style.display = "none";
+      if (carOriginToggleBtn) carOriginToggleBtn.setAttribute("aria-expanded", "false");
+      updateSelectionSummary(carOriginSummary, "المنشأ المختار", getCheckedValues("carOrigins"));
+    });
+    document.getElementById("carBrandDoneBtn")?.addEventListener("click", () => {
+      if (carBrandContent) carBrandContent.style.display = "none";
+      if (carBrandToggleBtn) carBrandToggleBtn.setAttribute("aria-expanded", "false");
+      updateSelectionSummary(carBrandSummary, "نوع السيارة المختار", getCheckedValues("carBrands"));
+    });
+    document.getElementById("carModelDoneBtn")?.addEventListener("click", () => {
+      if (carModelContent) carModelContent.style.display = "none";
+      if (carModelToggleBtn) carModelToggleBtn.setAttribute("aria-expanded", "false");
+      updateSelectionSummary(carModelSummary, "الموديل المختار", getCheckedValues("carModels"));
+    });
+    document.getElementById("carYearDoneBtn")?.addEventListener("click", () => {
+      if (carYearContent) carYearContent.style.display = "none";
+      if (carYearToggleBtn) carYearToggleBtn.setAttribute("aria-expanded", "false");
+      updateSelectionSummary(carYearSummary, "سنة الصنع المختارة", getCheckedValues("carYears"));
+    });
+
+    function resetCarSelections() {
+      collapseCarGroup(null, carOriginContent, carOriginOptions, carOriginToggleBtn, carOriginSummary);
+      collapseCarGroup(carBrandGroup, carBrandContent, carBrandOptions, carBrandToggleBtn, carBrandSummary);
+      collapseCarGroup(carModelGroup, carModelContent, carModelOptions, carModelToggleBtn, carModelSummary);
+      collapseCarGroup(carYearGroup, carYearContent, carYearOptions, carYearToggleBtn, carYearSummary);
+      // منشأ السيارات قائمة ثابتة لا تُفرَّغ محتوياتها (checkboxes ثابتة بالـ HTML)
+      if (carOriginOptions) {
+        carOriginOptions.querySelectorAll('input[name="carOrigins"]').forEach(cb => { cb.checked = false; });
+      }
     }
 
     // ---------------------------------------------------------------
@@ -424,7 +707,10 @@ document.addEventListener('DOMContentLoaded', () => {
         workHours: document.getElementById("workHours")?.value.trim() || "",
         mapLocation: document.getElementById("mapLocation")?.value.trim() || "",
         description: document.getElementById("description")?.value.trim() || "",
-        carOrigins: getCheckedValues("carOrigins")
+        carOrigins: getCheckedValues("carOrigins"),
+        carBrands: getCheckedValues("carBrands"),
+        carModels: getCheckedValues("carModels"),
+        carYears: getCheckedValues("carYears")
       };
 
       try {
@@ -433,6 +719,9 @@ document.addEventListener('DOMContentLoaded', () => {
           alert("تم حفظ المحل");
           form.reset();
           if (specialtyGroup) specialtyGroup.style.display = "none";
+          if (specialtyOptions) specialtyOptions.style.display = "none";
+          document.getElementById("specialtyToggle")?.setAttribute("aria-expanded", "false");
+          resetCarSelections();
           window.closeModal();
           loadRegistrations();
         } else {
@@ -538,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert("حدث خطأ أثناء تسجيل الإعجاب");
       return;
     }
+    invalidateLikesCache();
     await loadComments(shopId);
   };
 
@@ -633,8 +923,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // وهل المستخدم الحالي معجب فيه، بدل استعلام منفصل لكل تعليق.
           let likesByComment = {};
           try {
-            const [allLikes, myUid] = await Promise.all([getAllCommentLikes(), getCurrentUid()]);
-            allLikes.forEach(l => {
+            const [allLikes, myUid] = await getLikesData();
+            (Array.isArray(allLikes) ? allLikes : []).forEach(l => {
               if (!likesByComment[l.commentId]) likesByComment[l.commentId] = { count: 0, likedByMe: false };
               likesByComment[l.commentId].count++;
               if (myUid && l.uid === myUid) likesByComment[l.commentId].likedByMe = true;
@@ -762,9 +1052,8 @@ window.showCategoryRegistrations = async function (type, specialty) {
             ${r.mapLocation && isSafeUrl(r.mapLocation) ? `<p><strong>🗺️ الموقع:</strong> <a href="${escapeHTML(r.mapLocation)}" target="_blank" rel="noopener noreferrer">فتح الموقع على الخريطة 📍</a></p>` : ""}
             ${renderReviewSection(r.id)}
           </div>
-          <button type="button" class="card-toggle-btn">▼ عرض التفاصيل</button>
+          <button type="button" class="card-toggle-btn" data-shop-id="${escapeHTML(r.id)}">▼ عرض التفاصيل</button>
         </div>`;
-        loadComments(r.id);
       });
 
       attachPhoneLongPress(container);
@@ -963,6 +1252,58 @@ window.openCategory = async function (type) {
   const switchToSignup = document.getElementById("switchToSignup");
   const switchToLogin = document.getElementById("switchToLogin");
   const menuLoginItem = document.getElementById("menuLoginItem");
+  const menuUserName = document.getElementById("menuUserName");
+  const profileBtn = document.getElementById("profileBtn");
+  const profileDropdown = document.getElementById("profileDropdown");
+  const profileDropdownName = document.getElementById("profileDropdownName");
+  const profileDropdownAuthBtn = document.getElementById("profileDropdownAuthBtn");
+
+  // يحسب موقع القائمة المنسدلة حسب مكان أيقونة الحساب الفعلي على الشاشة
+  // (بدل تخمين يمين/يسار)، عشان تضل داخل الشاشة بأي اتجاه (RTL/LTR).
+  function positionProfileDropdown() {
+    if (!profileBtn || !profileDropdown) return;
+    const rect = profileBtn.getBoundingClientRect();
+    const dropdownWidth = profileDropdown.offsetWidth || 190;
+    let left = rect.right - dropdownWidth;
+    left = Math.max(8, Math.min(left, window.innerWidth - dropdownWidth - 8));
+    profileDropdown.style.top = `${rect.bottom + 8}px`;
+    profileDropdown.style.left = `${left}px`;
+  }
+
+  function closeProfileDropdown() {
+    if (!profileDropdown) return;
+    profileDropdown.style.display = "none";
+    if (profileBtn) profileBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleProfileDropdown() {
+    if (!profileDropdown) return;
+    const isOpen = profileDropdown.style.display !== "none";
+    if (isOpen) {
+      closeProfileDropdown();
+      return;
+    }
+    profileDropdown.style.display = "block";
+    if (profileBtn) profileBtn.setAttribute("aria-expanded", "true");
+    positionProfileDropdown();
+  }
+
+  if (profileBtn) {
+    profileBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleProfileDropdown();
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!profileDropdown || profileDropdown.style.display === "none") return;
+    if (profileDropdown.contains(e.target) || (profileBtn && profileBtn.contains(e.target))) return;
+    closeProfileDropdown();
+  });
+
+  window.addEventListener("resize", () => {
+    if (profileDropdown && profileDropdown.style.display !== "none") positionProfileDropdown();
+  });
 
   window.openAuthModal = function () {
     closeSideMenu();
@@ -993,13 +1334,55 @@ window.openCategory = async function (type) {
       menuLoginItem.textContent = "🔐 تسجيل الدخول";
       menuLoginItem.classList.remove("logged-in");
       menuLoginItem.onclick = window.openAuthModal;
+      if (menuUserName) {
+        menuUserName.style.display = "none";
+        menuUserName.textContent = "";
+      }
+      if (profileDropdownName) {
+        profileDropdownName.style.display = "none";
+        profileDropdownName.textContent = "";
+      }
+      if (profileDropdownAuthBtn) {
+        profileDropdownAuthBtn.textContent = "🔐 تسجيل الدخول";
+        profileDropdownAuthBtn.onclick = () => {
+          closeProfileDropdown();
+          window.openAuthModal();
+        };
+      }
       return;
     }
     const profile = await getCurrentUserProfile();
     const displayName = profile ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() : "";
-    menuLoginItem.textContent = displayName ? `🚪 تسجيل الخروج (${displayName})` : "🚪 تسجيل الخروج";
+    // الاسم يظهر بأعلى القائمة، وزر الخروج يضل بسيط بدون تكرار الاسم بيه.
+    if (menuUserName) {
+      if (displayName) {
+        menuUserName.textContent = `👤 ${displayName}`;
+        menuUserName.style.display = "";
+      } else {
+        menuUserName.style.display = "none";
+        menuUserName.textContent = "";
+      }
+    }
+    menuLoginItem.textContent = "🚪 تسجيل الخروج";
     menuLoginItem.classList.add("logged-in");
     menuLoginItem.onclick = window.logoutAccountUI;
+
+    if (profileDropdownName) {
+      if (displayName) {
+        profileDropdownName.textContent = `👤 ${displayName}`;
+        profileDropdownName.style.display = "";
+      } else {
+        profileDropdownName.style.display = "none";
+        profileDropdownName.textContent = "";
+      }
+    }
+    if (profileDropdownAuthBtn) {
+      profileDropdownAuthBtn.textContent = "🚪 تسجيل الخروج";
+      profileDropdownAuthBtn.onclick = () => {
+        closeProfileDropdown();
+        window.logoutAccountUI();
+      };
+    }
   }
 
   window.logoutAccountUI = async function () {
@@ -1048,6 +1431,7 @@ window.openCategory = async function (type) {
         signupForm.reset();
         window.closeAuthModal();
         await updateAuthUI();
+        alert("✅ تم التسجيل بنجاح");
       } else if (signupError) {
         signupError.textContent = translateAuthError(result.code);
         signupError.style.display = "block";
