@@ -1,0 +1,186 @@
+@'
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>حذف الحساب - دالّة</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Tahoma, sans-serif;
+    background: #f5f7fa;
+    color: #1f2937;
+}
+
+.container {
+    max-width: 650px;
+    margin: 50px auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 35px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.logo {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 20px;
+    border-radius: 18px;
+    background: #111827;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 30px;
+    line-height: 1.8;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+}
+
+textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    border: 0;
+    border-radius: 10px;
+    background: #111827;
+    color: white;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.info {
+    margin-top: 25px;
+    padding: 18px;
+    background: #f3f4f6;
+    border-radius: 12px;
+    line-height: 1.8;
+    color: #4b5563;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 25px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+a {
+    color: #2563eb;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <div class="logo">د</div>
+
+        <h1>طلب حذف الحساب</h1>
+
+        <p class="subtitle">
+            تطبيق <strong>دالّة</strong><br>
+            يمكنك من هنا طلب حذف حسابك والبيانات المرتبطة به.
+        </p>
+
+        <form action="mailto:yousifiraqas@gmail.com" method="post" enctype="text/plain">
+
+            <label for="email">البريد الإلكتروني المستخدم في دالّة</label>
+
+            <input
+                type="email"
+                id="email"
+                name="البريد الإلكتروني"
+                placeholder="example@email.com"
+                required
+            >
+
+            <label for="message">تفاصيل الطلب</label>
+
+            <textarea
+                id="message"
+                name="تفاصيل الطلب"
+                placeholder="أرغب في حذف حسابي وجميع البيانات المرتبطة به من تطبيق دالّة."
+                required
+            ></textarea>
+
+            <button type="submit">
+                إرسال طلب حذف الحساب
+            </button>
+
+        </form>
+
+        <div class="info">
+            <strong>ماذا سيتم حذفه؟</strong><br>
+            عند التحقق من طلبك، سيتم حذف حسابك والبيانات المرتبطة به وفق سياسة حذف البيانات الخاصة بتطبيق دالّة.
+            قد يتم الاحتفاظ ببعض البيانات فقط إذا كان ذلك مطلوباً لأسباب قانونية أو أمنية مشروعة.
+        </div>
+
+        <div class="info">
+            <strong>ملاحظة:</strong><br>
+            يجب إرسال الطلب باستخدام البريد الإلكتروني المرتبط بالحساب حتى نتمكن من التحقق من ملكية الحساب.
+        </div>
+
+        <div class="footer">
+            © 2026 دالّة - دليل خدمات السيارات
+            <br>
+            <a href="privacy-policy.html">سياسة الخصوصية</a>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
+'@ | Set-Content -Path .\account-deletion.html -Encoding UTF8
