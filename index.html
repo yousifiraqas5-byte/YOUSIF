@@ -363,14 +363,20 @@
   </select>
 </div>
 
+<div class="form-group" id="districtGroup" style="display:none">
+  <label for="district">🏘️ القاطع:</label>
+  <select id="district" name="district">
+    <option value="">اختر القاطع</option>
+    <option value="الرصافة">الرصافة</option>
+    <option value="الكرخ">الكرخ</option>
+  </select>
+</div>
+
 <div class="form-group">
-  <label for="region">📍 المدينة / المنطقة:</label>
-  <input
-    type="text"
-    id="region"
-    name="region"
-    required
-    placeholder="مثال: الكرادة">
+  <label for="region">📍 المنطقة:</label>
+  <select id="region" name="region" required disabled>
+    <option value="">اختر القاطع أولاً</option>
+  </select>
 </div>
 
 <div class="form-group">

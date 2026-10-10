@@ -42,6 +42,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }[ch]));
   }
 
+  const iraqGovernorates = [
+    "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك",
+    "كركوك", "الأنبار", "صلاح الدين", "ديالى", "واسط", "ميسان",
+    "ذي قار", "المثنى", "القادسية", "بابل", "كربلاء", "النجف", "حلبجة"
+  ];
+
+  const iraqRegionsByGovernorate = {
+    "بغداد": {
+      "الرصافة": [
+        "الأعظمية", "البلديات", "الجادرية", "الحبيبية", "الرستمية", "الرشاد",
+        "الزعفرانية", "الفضيلية", "القاهرة", "الكريعات", "الكرادة",
+        "الكمالية", "المعامل", "المشتل", "الوزيرية", "الشعب",
+        "الصليخ", "العبيدي", "حي أور", "حي البتول",
+        "حي البنوك", "حي النصر", "سبع أبكار", "شارع فلسطين", "شارع المغرب",
+        "قضاء الحسينية", "قضاء المدائن", "مدينة الصدر", "زيونة"
+      ],
+      "الكرخ": [
+        "البياع", "الحرية الأولى", "الحرية الثانية", "الحرية الثالثة",
+        "الخضراء", "الدورة", "الدولعي", "الرسالة الأولى", "السيدية",
+        "الشالجية", "الشرطة", "الصالحية", "الصحة", "الشواكة", "الطعمة",
+        "العدل", "العامرية", "العطيفية", "الغزالية", "القادسية",
+        "الكاظمية", "كرادة مريم", "الكندي", "المنصور", "المواصلات",
+        "الوشاش", "اليرموك", "حي الإسكان", "حي الجهاد", "حي الجامعة",
+        "حي العامل", "حي المخابرات", "حي الفرات", "حي التراث", "حي السلام",
+        "حي الشعلة", "حي دجلة", "حيفا", "عرب جبور", "عويريج", "هور رجب"
+      ]
+    },
+    "البصرة": [
+      "البصرة مركز", "المشخاب", "القرنة", "أبو الخصيب", "الرفاعي",
+      "الفهود", "الطويسة", "الخور", "القطعة", "الرميلة"
+    ],
+    "نينوى": [
+      "الموصل مركز", "الشرقاط", "الحضر", "القحطانية", "البعاج",
+      "المعنى", "الساعة", "الزبار", "تلعفر", "القوش"
+    ],
+    "أربيل": [
+      "أربيل مركز", "عنكاوة", "كويه", "ميركسور", "سيدكان",
+      "خبات", "الجمجمة", "كفري", "شيلاديز", "زاوي"
+    ],
+    "السليمانية": [
+      "السليمانية مركز", "كلار", "رانية", "بهدينان", "قادر كرم",
+      "الشاملة", "حلبجة", "سيدكان"
+    ],
+    "دهوك": [
+      "دهوك مركز", "زاخو", "العمادية", "سميل", "باتيفا",
+      "المخمور", "القوش", "سولاف", "الحاج علي"
+    ],
+    "كركوك": [
+      "كركوك مركز", "داقوق", "الحويجة", "الرياض", "الزاب",
+      "الطوبة", "بنجوين", "الراشدية", "الشمال"
+    ],
+    "الأنبار": [
+      "الرمادي", "الفلوجة", "القائم", "الهبارية", "الحدباء",
+      "الکرکمة", "الراوات", "الراشدية", "الغربية"
+    ],
+    "صلاح الدين": [
+      "تكريت", "سامراء", "بيجي", "الدور", "الضلوعية",
+      "الفرات", "الشرقاط", "المحمرة", "العمارة"
+    ],
+    "ديالى": [
+      "بعقوبة", "المقدادية", "الخالص", "المنصورية", "الرحالية",
+      "الموسى", "الخان", "الراشدية"
+    ],
+    "واسط": [
+      "الكوت", "النعمانية", "الحي", "الزبير", "الشمول",
+      "البدير", "الراشدية", "الغربية"
+    ],
+    "ميسان": [
+      "العمارة", "المجر الكبير", "الكحلاء", "القلعة", "الزهر",
+      "الميمونة", "الراشدية", "الغربية"
+    ],
+    "ذي قار": [
+      "الناصرية", "الشطرة", "الرفاعي", "الگزا", "البدير",
+      "السماوة", "الراشدية", "الغربية"
+    ],
+    "المثنى": [
+      "السماوة", "الخزيمة", "الوركاء", "الرميلة", "الراوات"
+    ],
+    "القادسية": [
+      "الديوانية", "الحلة", "الشرق", "الغربية", "المغاوير",
+      "الراشدية", "الغربية"
+    ],
+    "بابل": [
+      "الحلة", "المسيب", "الشرق", "الغربية", "الكلية",
+      "الراشدية", "الغربية"
+    ],
+    "كربلاء": [
+      "كربلاء مركز", "الحسينية", "الشرق", "الغربية",
+      "الراشدية", "الغربية"
+    ],
+    "النجف": [
+      "النجف مركز", "الكوفة", "الشرق", "الغربية",
+      "الراشدية", "الغربية"
+    ],
+    "حلبجة": [
+      "حلبجة مركز", "السندية", "الشرق", "الغربية",
+      "الراشدية", "الغربية"
+    ]
+  };
+
+  const governorateToRegions = Object.fromEntries(
+    Object.entries(iraqRegionsByGovernorate).map(([gov, regions]) => [gov, regions])
+  );
+
   // يتحقق أن الرابط يبدأ بـ http/https قبل استخدامه كـ href، لمنع حقن
   // روابط من نوع javascript: عبر حقل "الموقع على الخريطة".
   function isSafeUrl(url) {
@@ -430,6 +534,51 @@ document.addEventListener('DOMContentLoaded', () => {
         if (specialtyContent) specialtyContent.style.display = "none";
         if (specialtyToggleBtn) specialtyToggleBtn.setAttribute("aria-expanded", "false");
         updateSelectionSummary(specialtySummary, "التخصصات المختارة", []);
+      });
+    }
+
+    const citySelect = document.getElementById("city");
+    const districtSelect = document.getElementById("district");
+    const districtGroup = document.getElementById("districtGroup");
+    const regionSelect = document.getElementById("region");
+
+    if (citySelect && districtSelect && regionSelect) {
+      citySelect.addEventListener("change", () => {
+        const gov = citySelect.value;
+        if (gov === "بغداد") {
+          districtGroup.style.display = "";
+          districtSelect.disabled = false;
+          districtSelect.value = "";
+          regionSelect.innerHTML = '<option value="">اختر القاطع أولاً</option>';
+          regionSelect.disabled = true;
+        } else if (gov) {
+          districtGroup.style.display = "none";
+          districtSelect.value = "";
+          regionSelect.disabled = false;
+          const regions = governorateToRegions[gov] || [];
+          regionSelect.innerHTML = '<option value="">اختر المنطقة</option>' +
+            regions.map(r => `<option value="${escapeHTML(r)}">${escapeHTML(r)}</option>`).join("");
+        } else {
+          districtGroup.style.display = "none";
+          districtSelect.value = "";
+          regionSelect.innerHTML = '<option value="">اختر المحافظة أولاً</option>';
+          regionSelect.disabled = true;
+        }
+      });
+
+      districtSelect.addEventListener("change", () => {
+        const district = districtSelect.value;
+        regionSelect.innerHTML = "";
+        if (!district) {
+          regionSelect.innerHTML = '<option value="">اختر القاطع أولاً</option>';
+          regionSelect.disabled = true;
+          return;
+        }
+        regionSelect.disabled = false;
+        const districts = governorateToRegions["بغداد"] || {};
+        const regions = districts[district] || [];
+        regionSelect.innerHTML = '<option value="">اختر المنطقة</option>' +
+          regions.map(r => `<option value="${escapeHTML(r)}">${escapeHTML(r)}</option>`).join("");
       });
     }
 
